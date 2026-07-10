@@ -1,46 +1,39 @@
-# Service Template
+# FanFlow
 
-Starting point for new `exeal/ne2-studio` projects: a monorepo with a `frontend/` and `backend/`
-scaffolded to match [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+FanFlow is a smart-link and landing platform for independent musicians, bands, labels, and music
+marketers running paid campaigns. It sits between advertising platforms (Meta Ads, TikTok Ads,
+Google Ads, Instagram, YouTube) and streaming destinations (Spotify, Apple Music, YouTube Music,
+Bandcamp), solving one problem: driving real fans from ads to music platforms while filtering bots
+and measuring traffic quality. See [`docs/PRD.md`](docs/PRD.md) for the full product vision.
 
 ## What's here
 
 | Directory | Contents |
 |-----------|----------|
-| `docs/ARCHITECTURE.md` | The architecture standard both services should follow |
-| `docs/API.md` | The API contract for the `Task` reference slice |
-| `backend/` | ASP.NET Core (.NET 10) ports & adapters scaffold, with a `Task` CRUD slice as a working reference implementation — see [`backend/README.md`](backend/README.md) |
-| `frontend/` | React 19 + Vite + Zustand scaffold, consuming the same `Task` domain — see [`frontend/README.md`](frontend/README.md) |
+| `docs/PRD.md` | Product requirements: vision, problem, target customer, MVP scope |
+| `docs/CONTRACT.md` | Application use cases, each as a mini-specification |
+| `docs/API.md` | The HTTP API contract for releases, analytics, and tracking |
+| `docs/ARCHITECTURE.md` | The architecture standard both services follow |
+| `backend/` | ASP.NET Core (.NET 10) ports & adapters backend — releases, tracking, bot scoring, analytics — see [`backend/README.md`](backend/README.md) |
+| `frontend/` | React 19 + Vite + Zustand admin app for authoring releases — see [`frontend/README.md`](frontend/README.md) |
+| `site/` | Nginx container serving published static landing pages from MinIO and proxying tracking beacons |
 | `.github/workflows/` | Path-filtered CI/CD for each service (build → test → Docker image → registry → deploy webhook) |
-
-The `Task` example resource (add/list/delete a task list) exists to exercise every layer/convention
-end-to-end, front-to-back, so you have a working slice to read and adapt, not to demonstrate a
-real feature. Replace it with the new project's actual domain — see each service's README for the
-specific steps.
-
-## Using this template for a new project
-
-1. Copy `backend/` and `frontend/` into the new project's repo.
-2. Follow the "How to use this template" steps in [`backend/README.md`](backend/README.md) and
-   [`frontend/README.md`](frontend/README.md) to rename `ServiceTemplate`/`{ProjectName}` throughout
-   and swap in the real domain.
-3. Update `.github/workflows/*.yml`: image names under `env.IMAGE_NAME` and the Coolify webhook
-   secrets need to point at the new project, not whatever they were copied from.
-4. Update this file and `docs/ARCHITECTURE.md` if the new project deviates from the standard
-   layout — the architecture doc should stay authoritative for the project going forward.
 
 ## Architecture
 
-Two independently deployable services, no shared code between them:
+Independently deployable services:
 
 | Directory | Stack |
 |-----------|-------|
 | `frontend/` | React 19, TypeScript, Vite, Tailwind CSS v4, Zustand, react-oidc-context |
-| `backend/` | ASP.NET Core (.NET 10), PostgreSQL, Serilog |
+| `backend/` | ASP.NET Core (.NET 10), PostgreSQL, MinIO (S3), Serilog |
+| `site/` | Nginx, serving pregenerated static landing pages straight from MinIO |
 
-Auth is OIDC/JWT Bearer end-to-end: the frontend authenticates against an external OIDC provider
-and attaches the access token to every API call; the backend validates it via `JwtBearer`
-middleware. Full conventions and rationale are in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Landing pages are static HTML, generated from the database and published directly to a MinIO
+bucket — no server-side rendering on the request path. Auth for the admin app is OIDC/JWT Bearer
+end-to-end: the frontend authenticates against an external OIDC provider and attaches the access
+token to every API call; the backend validates it via `JwtBearer` middleware. Full conventions and
+rationale are in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Getting started
 
@@ -48,17 +41,17 @@ middleware. Full conventions and rationale are in [`docs/ARCHITECTURE.md`](docs/
 
 - Node.js 22+
 - .NET 10 SDK
-- Docker (for PostgreSQL locally, and for building images)
+- Docker (for PostgreSQL/MinIO locally, and for building images)
 
 ### Backend
 
 ```bash
 cd backend
 dotnet restore
-dotnet run --project ServiceTemplate.Api
+dotnet run --project FanFlow.Api
 ```
 
-See [`backend/README.md`](backend/README.md) for running PostgreSQL locally, environment
+See [`backend/README.md`](backend/README.md) for running PostgreSQL/MinIO locally, environment
 configuration, tests, and Docker.
 
 ### Frontend
@@ -76,23 +69,25 @@ See [`frontend/README.md`](frontend/README.md) for details.
 
 ### Everything via Docker Compose
 
-`docker-compose.yaml` at the repo root spins up Postgres, the backend, and the frontend together,
-each service built from its own `Dockerfile`. The frontend image only copies a pre-built `dist/`
-(it doesn't run `npm run build` itself), so build the frontend once first:
+`docker-compose.yaml` at the repo root spins up Postgres, MinIO, the backend, the frontend, and the
+static site container together, each built from its own `Dockerfile`. The frontend image only
+copies a pre-built `dist/` (it doesn't run `npm run build` itself), so build the frontend once
+first:
 
 ```bash
 cd frontend && cp .env.example .env && npm install && npm run build && cd ..
 docker compose up --build
 ```
 
-Backend: http://localhost:5050 · Frontend: http://localhost:3000 · Postgres: localhost:5432.
+Backend: http://localhost:5050 · Frontend: http://localhost:3000 · Site: http://localhost:8081 ·
+Postgres: localhost:5432 · MinIO console: http://localhost:9001.
 
 ## Deployment
 
-Both services are containerized and deploy independently. CI/CD runs on push to `main`
+All services are containerized and deploy independently. CI/CD runs on push to `main`
 (path-filtered per service), builds a Docker image, pushes it to GitHub Container Registry, and
-triggers a Coolify deploy webhook — see `.github/workflows/backend-deploy.yml` and
-`frontend-deploy.yml`.
+triggers a Coolify deploy webhook — see `.github/workflows/backend-deploy.yml`,
+`frontend-deploy.yml`, and `site-deploy.yml`.
 
 ## License
 

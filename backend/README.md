@@ -1,52 +1,52 @@
-# Service Template — Backend
+# FanFlow — Backend
 
-Starting point for new backend services, scaffolded to match the conventions in
-[`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md). ASP.NET Core (.NET 10) with a ports & adapters
-layout, PostgreSQL via Dapper + FluentMigrator, JWT bearer auth, and Serilog.
+ASP.NET Core (.NET 10) API for FanFlow, scaffolded to match the conventions in
+[`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md). Ports & adapters layout, PostgreSQL via Dapper +
+FluentMigrator, JWT bearer auth, and Serilog.
 
-It ships with one example resource — **tasks** (add/list/delete, paired with the frontend's task
-list screen) — a minimal CRUD slice that exercises every convention end-to-end so you have a
-working reference instead of an empty shell:
+It owns the **release** domain — creating and publishing smart-link landing pages, tracking traffic
+against them, and scoring/classifying that traffic for bots — via a few key pieces:
 
 - `Result<T>` for expected failures instead of exceptions/try-catch-500
-- an output port per external effect (`IClock`, `IIdGenerator`, `ITaskRepository`, `INotifier`)
-- a caching **decorator** (`CachedTaskRepository`) composed at the DI root, registered `Singleton`
-  as a deliberate, documented exception to the default `Scoped` lifetime
-- the **Null Object pattern** for feature-flagged behavior (`INotifier` swaps between `LoggingNotifier`
-  and `NullNotifier` based on `Features:Notifications:Enabled`, decided once in `ServiceRegistration`)
-- a public, unauthenticated, rate-limited endpoint (`/health`) alongside JWT-protected resource endpoints
-- two-tier testing: hand-written fakes for core/application logic, NSubstitute mocks for the infra decorator
-
-## How to use this template
-
-1. Copy `service-template/backend/` to the new service's `backend/` directory.
-2. Rename `ServiceTemplate` throughout — project folders, `.csproj`/`.sln` file names, namespaces,
-   `AssemblyName`s, and references to `ServiceTemplate.Api` / `ServiceTemplate.Infra` — to your
-   `{ProjectName}`.
-3. Replace the `Task` domain (entity, repository, use case, controller, migration) with your actual
-   domain, keeping the same layering: `Ports/Input` for use-case contracts, `Ports/Output` for
-   everything external, `Application/` for business logic, `Infra/` for adapters.
-4. Update `Auth:Authority` / `Auth:Audience` in `appsettings.json`, the database name in the connection
-   string, and the Serilog `Application` property.
+- an output port per external effect (`IClock`, `IIdGenerator`, `IReleaseRepository`,
+  `IEventRepository`, `IReleasePublisher`, `IConversionsApiClient`, `ISlugGenerator`)
+- static landing page publishing straight to a MinIO bucket via the S3 API — the backend never
+  writes to a local publish folder (see `StaticSiteReleasePublisher`)
+- a background worker (`SpamClassificationWorker`) that polls tracked events and scores them
+  (`BotScoring`) into `Human`/`Bot`, decoupling classification from the hot tracking path
+- the **Null Object pattern** for feature-flagged behavior (`IConversionsApiClient` swaps between
+  `MetaConversionsApiClient` and `NullConversionsApiClient` based on
+  `Features:MetaConversions:Enabled`, decided once in `ServiceRegistration`)
+- public, unauthenticated, rate-limited tracking endpoints (`/pv`, `/out`, `/trap`, `/health`)
+  alongside JWT-protected release management endpoints
+- two-tier testing: hand-written fakes for core/application logic, NSubstitute mocks for the infra
+  publisher
 
 ## Architecture
 
 ```
-ServiceTemplate        — domain core (use cases, ports)
-ServiceTemplate.Infra  — adapters (PostgreSQL, caching decorator, notifier)
-ServiceTemplate.Api    — HTTP entry point (controllers, JWT validation)
+FanFlow        — domain core (use cases, ports)
+FanFlow.Infra  — adapters (PostgreSQL, MinIO publishing, Meta Conversions API, bot scoring)
+FanFlow.Api    — HTTP entry point (controllers, background worker, JWT validation)
 ```
 
 ## API endpoints
 
-Task management endpoints require a valid JWT (`Authorization: Bearer <token>`). Full request/response
-shapes are documented in [`docs/API.md`](../docs/API.md).
+Release management endpoints require a valid JWT (`Authorization: Bearer <token>`). Tracking
+endpoints (`/pv`, `/out`, `/trap`) are public and rate-limited. Full request/response shapes are
+documented in [`docs/API.md`](../docs/API.md).
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `POST` | `/api/tasks` | Required | Create a task |
-| `GET` | `/api/tasks` | Required | List tasks (paginated) |
-| `DELETE` | `/api/tasks/{id}` | Required | Delete a task |
+| `POST` | `/api/releases` | Required | Create a release and its landing page |
+| `PUT` | `/api/releases/{id}` | Required | Update a release, republish its landing page |
+| `GET` | `/api/releases` | Required | List releases for the current tenant |
+| `GET` | `/api/releases/{id}` | Required | Get a release |
+| `DELETE` | `/api/releases/{id}` | Required | Soft-delete a release, unpublish its landing page |
+| `GET` | `/api/releases/{id}/analytics` | Required | Traffic analytics for a release |
+| `GET` | `/pv/{slug}` | Public (rate-limited) | Record a landing page view |
+| `GET` | `/out/{slug}/{destinationId}` | Public (rate-limited) | Record a destination click, redirect |
+| `GET` | `/trap/{slug}` | Public (rate-limited) | Record a honeypot hit (immediate bot classification) |
 | `GET` | `/health` | Public (rate-limited) | Liveness check |
 
 ## Getting started
@@ -56,27 +56,35 @@ shapes are documented in [`docs/API.md`](../docs/API.md).
 - [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download)
 - [Docker](https://www.docker.com/products/docker-desktop)
 
-### Run PostgreSQL locally
+### Run PostgreSQL and MinIO locally
+
+Easiest via the root `docker-compose.yaml` (`docker compose up postgres minio`), or standalone:
 
 ```bash
-docker run --name pg-servicetemplate \
+docker run --name pg-fanflow \
   -e POSTGRES_USER=devuser \
   -e POSTGRES_PASSWORD=devpass \
-  -e POSTGRES_DB=servicetemplate \
+  -e POSTGRES_DB=fanflow \
   -p 5432:5432 \
   -d postgres:16
+
+docker run --name minio-fanflow \
+  -e MINIO_ROOT_USER=minioadmin \
+  -e MINIO_ROOT_PASSWORD=minioadmin \
+  -p 9000:9000 -p 9001:9001 \
+  -d minio/minio server /data --console-address ":9001"
 ```
 
-To stop and remove the container:
+To stop and remove the containers:
 
 ```bash
-docker stop pg-servicetemplate && docker rm pg-servicetemplate
+docker stop pg-fanflow minio-fanflow && docker rm pg-fanflow minio-fanflow
 ```
 
 ### Run the API
 
 ```bash
-dotnet run --project ServiceTemplate.Api
+dotnet run --project FanFlow.Api
 ```
 
 The API will be available at http://localhost:5050. Migrations run automatically at startup.
@@ -92,16 +100,16 @@ dotnet test
 Build the image:
 
 ```bash
-docker build . -t servicetemplate-api
+docker build . -t fanflow-api
 ```
 
 Run the container:
 
 ```bash
-docker run --name servicetemplate-api \
-  -e "ConnectionStrings__DefaultConnection=Host=host.docker.internal;Port=5432;Database=servicetemplate;Username=devuser;Password=devpass" \
+docker run --name fanflow-api \
+  -e "ConnectionStrings__DefaultConnection=Host=host.docker.internal;Port=5432;Database=fanflow;Username=devuser;Password=devpass" \
   -p 5050:8080 \
-  servicetemplate-api
+  fanflow-api
 ```
 
 ## License

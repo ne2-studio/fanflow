@@ -13,7 +13,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: ghcr.io/ne2-studio/servicetemplate-site
+  IMAGE_NAME: ghcr.io/ne2-studio/fanflow-site
 
 defaults:
   run:

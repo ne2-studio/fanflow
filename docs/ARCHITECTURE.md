@@ -1,4 +1,4 @@
-# {ProjectName} Architecture
+# FanFlow Architecture
 
 This document is the architecture standard for new projects: project structure, layering, and conventions for both services. It describes what *should be built*, distilled from patterns proven across prior projects; when starting or extending a project, follow these patterns unless there's a specific, documented reason to deviate.
 
@@ -15,25 +15,25 @@ Auth is OIDC/JWT Bearer end-to-end: the frontend authenticates against an extern
 
 ---
 
-## Backend (`backend/{ProjectName}.Api`)
+## Backend (`backend/FanFlow.Api`)
 
 ### Architecture: ports & adapters
 
 The backend is split across three projects, with dependencies pointing inward toward the core:
 
 ```
-{ProjectName}.Api  ──┐
-                      ├──→  {ProjectName}  (core: Application + Ports)
-{ProjectName}.Infra ──┘
+FanFlow.Api  ──┐
+               ├──→  FanFlow  (core: Application + Ports)
+FanFlow.Infra ─┘
 ```
 
-- **`{ProjectName}` (core)** — the domain/use-case project. Contains:
+- **`FanFlow` (core)** — the domain/use-case project. Contains:
   - `Application/` — one class per use case (e.g. a "handler" implementing an input port), holding all business logic.
   - `Ports/Input/` — use-case interfaces and their request/response DTOs (plain `record` types, no behavior, no framework attributes). This is the contract the API layer calls into.
   - `Ports/Output/` — interfaces for everything the core needs from the outside world: repositories, clock, id/slug/token generation, external services, configuration values.
   - This project references only minimal, framework-agnostic libraries (a `Result` type library such as CSharpFunctionalExtensions, logging abstractions) — **no ASP.NET Core, no DB driver, no ORM.** It must be fully unit-testable in isolation, with no infrastructure dependencies to fake.
-- **`{ProjectName}.Infra`** — implements every output port (repositories, external service clients, clock, generators, config readers) and exposes a single composition-root extension method (e.g. `ServiceRegistration.AddInfrastructure()`) called once from `Program.cs`. This is the only place infra wiring happens.
-- **`{ProjectName}.Api`** — thin ASP.NET Core host: controllers, `Program.cs`, auth/rate-limiting/API-docs setup. Controllers depend only on `Ports/Input` interfaces, never on `Infra` or `Application` concrete types directly.
+- **`FanFlow.Infra`** — implements every output port (repositories, external service clients, clock, generators, config readers) and exposes a single composition-root extension method (e.g. `ServiceRegistration.AddInfrastructure()`) called once from `Program.cs`. This is the only place infra wiring happens.
+- **`FanFlow.Api`** — thin ASP.NET Core host: controllers, `Program.cs`, auth/rate-limiting/API-docs setup. Controllers depend only on `Ports/Input` interfaces, never on `Infra` or `Application` concrete types directly.
 
 ### Controller conventions
 
@@ -63,7 +63,7 @@ Choose the approach per project based on domain complexity:
 - **IDs**: prefer `Guid` primary keys by default; use `text` primary keys with human-readable codes only where the domain calls for it (e.g. well-known system rows). DTOs always expose ids as `string`; parse to the underlying type at the adapter boundary.
 - **Multi-tenancy / per-user data isolation** (if the domain scopes data to the caller): every tenant/user-scoped table has an explicit user id column; every repository method that reads or writes such a table takes the user id explicitly and filters/stores by it — don't rely on a global query filter or row-level security unless that's a deliberate, documented choice, so scoping stays visible at each call site.
   - The logged-in user id is resolved behind a secondary (output) port, `ICurrentUserProvider` (`Ports/Output`), so `Application/` use cases depend only on the interface and stay unit-testable with a fake — they never read `HttpContext`/claims directly.
-  - Its adapter lives in `{ProjectName}.Infra` (kept consistent with "Infra implements every output port") and reads the OIDC `sub` claim off the current request's validated JWT via `IHttpContextAccessor`; this requires `Infra` to add a `<FrameworkReference Include="Microsoft.AspNetCore.App" />` since it's otherwise a plain class library.
+  - Its adapter lives in `FanFlow.Infra` (kept consistent with "Infra implements every output port") and reads the OIDC `sub` claim off the current request's validated JWT via `IHttpContextAccessor`; this requires `Infra` to add a `<FrameworkReference Include="Microsoft.AspNetCore.App" />` since it's otherwise a plain class library.
   - The user id is treated as an opaque `string`, not a `Guid` — OIDC providers (e.g. Zitadel) don't guarantee subject ids are GUID-shaped.
   - Use cases call `ICurrentUserProvider.GetUserId()` themselves and pass the result into repository calls; input-port method signatures (e.g. `ITaskManager.ListAsync`) stay unchanged — the caller's identity is never a parameter the API layer has to thread through.
 - **Timestamps**: every entity has `CreatedAt`/`UpdatedAt` (`timestamp with time zone`), defaulted at the DB level to UTC. Dates from the client are parsed via a shared helper that assumes/adjusts to UTC.

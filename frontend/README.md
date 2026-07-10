@@ -1,6 +1,12 @@
-# {ProjectName} Frontend
+# FanFlow — Frontend
 
-Scaffold following the conventions in `docs/ARCHITECTURE.md`. Includes an example `Task` domain (`types.ts` → `api.ts` → `store/useTaskStore.ts` → `components/Tasks.tsx`) to illustrate the layering — replace it with the project's real domain(s). It talks to the backend's `Task` reference slice; see [`docs/API.md`](../docs/API.md) for the contract.
+Admin app for authoring and monitoring FanFlow releases, following the conventions in
+[`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md). Lets a musician or marketer create a release
+landing page (title, artwork, CTA, destination links), publish it, and see its traffic analytics
+(views, qualified views, clicks, CTR, sources, countries, devices). The release domain
+(`types.ts` → `api.ts` → `store/useReleaseStore.ts` → `components/Releases.tsx` /
+`ReleaseAnalyticsView.tsx`) talks to the backend's release management and analytics endpoints; see
+[`docs/API.md`](../docs/API.md) for the contract.
 
 ## Run locally
 

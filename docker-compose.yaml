@@ -12,13 +12,13 @@ services:
     environment:
       POSTGRES_USER: devuser
       POSTGRES_PASSWORD: devpass
-      POSTGRES_DB: servicetemplate
+      POSTGRES_DB: fanflow
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U devuser -d servicetemplate"]
+      test: ["CMD-SHELL", "pg_isready -U devuser -d fanflow"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -29,7 +29,7 @@ services:
       dockerfile: Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=servicetemplate;Username=devuser;Password=devpass"
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=fanflow;Username=devuser;Password=devpass"
       Publishing__PublicHostname: "http://localhost:8081"
       Publishing__Minio__Endpoint: "http://minio:9000"
       Publishing__Minio__AccessKey: "minioadmin"

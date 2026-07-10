@@ -1,0 +1,27 @@
+@FanFlow.Api_HostAddress = http://localhost:5050
+
+GET {{FanFlow.Api_HostAddress}}/health
+Accept: application/json
+
+###
+
+POST {{FanFlow.Api_HostAddress}}/api/tasks
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Buy milk"
+}
+
+###
+
+GET {{FanFlow.Api_HostAddress}}/api/tasks?skip=0&take=10
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+
+DELETE {{FanFlow.Api_HostAddress}}/api/tasks/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{token}}
+
+###
