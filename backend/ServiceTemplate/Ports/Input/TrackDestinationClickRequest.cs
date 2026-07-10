@@ -1,0 +1,11 @@
+namespace ServiceTemplate.Ports.Input;
+
+public record TrackDestinationClickRequest
+(
+    string ReleaseSlug,
+    string DestinationId,
+    string IpAddress,
+    string UserAgent,
+    string? Referrer,
+    int DwellTimeMs
+);
