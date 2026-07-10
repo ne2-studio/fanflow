@@ -36,7 +36,7 @@ public static class ServiceRegistration
         services.AddScoped<IReleasePublisher>(sp =>
             new StaticSiteReleasePublisher(sp.GetRequiredService<IAmazonS3>(), minioBucket));
 
-        var publicHostname = configuration["Publishing:PublicHostname"] ?? "fanflow.app";
+        var publicHostname = configuration["Publishing:PublicHostname"];
         services.AddScoped<IPublicSiteSettings>(_ => new PublicSiteSettings(publicHostname));
 
         // Null Object pattern: Meta requires real credentials that aren't available in every
