@@ -15,6 +15,7 @@ public record TrackedEvent
     string? Referrer,
     string? DestinationId,
     int? DwellTimeMs,
+    string? Country,
     int? BotScore,
     EventClassification? Classification,
     DateTime CreatedAt

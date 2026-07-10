@@ -7,5 +7,6 @@ public record TrackDestinationClickRequest
     string IpAddress,
     string UserAgent,
     string? Referrer,
-    int DwellTimeMs
+    int DwellTimeMs,
+    string? Country
 );

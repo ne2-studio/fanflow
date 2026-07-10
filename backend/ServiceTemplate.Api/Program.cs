@@ -3,6 +3,7 @@ using FluentMigrator.Runner;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using ServiceTemplate.Api.BackgroundServices;
 using ServiceTemplate.Application;
 using ServiceTemplate.Infra;
 using ServiceTemplate.Ports.Input;
@@ -74,10 +75,16 @@ builder.Services.AddRateLimiter(options =>
 });
 
 // Register application services
-builder.Services.AddScoped<ITaskManager, TaskManager>();
+builder.Services.AddScoped<IReleaseManager, ReleaseManager>();
+builder.Services.AddScoped<IReleaseAnalytics, ReleaseAnalytics>();
+builder.Services.AddScoped<ISpamClassifier, SpamClassifier>();
+builder.Services.AddScoped<ITrafficTracker, TrafficTracker>();
 
 // Register infrastructure services
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Drives async spam classification (see ISpamClassifier) by polling for unclassified events.
+builder.Services.AddHostedService<SpamClassificationWorker>();
 
 var app = builder.Build();
 

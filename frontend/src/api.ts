@@ -1,4 +1,4 @@
-import { Task } from './types';
+import { Task, Release, ReleaseSummary, ReleaseAnalytics } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050';
 
@@ -37,5 +37,47 @@ export const api = {
         method: 'DELETE',
         headers: getHeaders(),
       }).then(handleResponse),
+  },
+  releases: {
+    getAll: async (): Promise<ReleaseSummary[]> =>
+      fetch(`${API_BASE_URL}/api/releases`, { headers: getHeaders() }).then(handleResponse).then(data => data.map((r: any) => new ReleaseSummary(r))),
+    get: async (id: string): Promise<Release> =>
+      fetch(`${API_BASE_URL}/api/releases/${id}`, { headers: getHeaders() }).then(handleResponse).then(data => new Release(data)),
+    create: async (release: {
+      title: string;
+      headline: string;
+      description: string;
+      coverImageUrl: string;
+      backgroundImageUrl: string;
+      ctaText: string;
+      links: { platform: string; url: string }[];
+    }): Promise<Release> =>
+      fetch(`${API_BASE_URL}/api/releases`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(release),
+      }).then(handleResponse).then(data => new Release(data)),
+    update: async (id: string, release: Partial<{
+      title: string;
+      headline: string;
+      description: string;
+      coverImageUrl: string;
+      backgroundImageUrl: string;
+      ctaText: string;
+      links: { platform: string; url: string }[];
+    }>): Promise<Release> =>
+      fetch(`${API_BASE_URL}/api/releases/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(release),
+      }).then(handleResponse).then(data => new Release(data)),
+    delete: async (id: string): Promise<void> =>
+      fetch(`${API_BASE_URL}/api/releases/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      }).then(handleResponse),
+    getAnalytics: async (id: string, filter: 'all' | 'human'): Promise<ReleaseAnalytics> =>
+      fetch(`${API_BASE_URL}/api/releases/${id}/analytics?filter=${filter}`, { headers: getHeaders() })
+        .then(handleResponse).then(data => new ReleaseAnalytics(data)),
   },
 };

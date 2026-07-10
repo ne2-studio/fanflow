@@ -10,31 +10,41 @@ public static class ServiceRegistration
     {
         services.AddDatabase(configuration);
 
-        // Singleton: the caching decorator holds state (an in-memory dictionary) that must survive
-        // across requests to be useful — a deliberate exception to the default Scoped lifetime.
-        services.AddSingleton<ITaskRepository>(sp =>
-        {
-            var postgresRepository = new PostgresTaskRepository(configuration.GetConnectionString("DefaultConnection")!);
-            return new CachedTaskRepository(postgresRepository);
-        });
-
-        // Null Object pattern: the feature flag is read once, here, at the composition root.
-        // Use-case code depends only on INotifier and never checks the flag itself.
-        var notificationsEnabled = configuration.GetValue<bool>("Features:Notifications:Enabled");
-        if (notificationsEnabled)
-        {
-            services.AddScoped<INotifier, LoggingNotifier>();
-        }
-        else
-        {
-            services.AddScoped<INotifier, NullNotifier>();
-        }
-
         services.AddScoped<IIdGenerator, GuidIdGenerator>();
         services.AddScoped<IClock, SystemClock>();
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserProvider, HttpContextCurrentUserProvider>();
+
+        services.AddScoped<IReleaseRepository>(_ =>
+            new PostgresReleaseRepository(configuration.GetConnectionString("DefaultConnection")!));
+        services.AddScoped<IEventRepository>(_ =>
+            new PostgresEventRepository(configuration.GetConnectionString("DefaultConnection")!));
+
+        services.AddScoped<ISlugGenerator, SlugGenerator>();
+
+        var publishingDirectory = configuration["Publishing:OutputDirectory"] ?? "./publish";
+        services.AddScoped<IReleasePublisher>(_ => new StaticSiteReleasePublisher(publishingDirectory));
+
+        // Null Object pattern: Meta requires real credentials that aren't available in every
+        // environment (dev/test), so the flag is read once here at the composition root.
+        var metaConversionsEnabled = configuration.GetValue<bool>("Features:MetaConversions:Enabled");
+        if (metaConversionsEnabled)
+        {
+            services.AddHttpClient();
+            services.AddScoped<IConversionsApiClient>(sp =>
+            {
+                var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(MetaConversionsApiClient));
+                return new MetaConversionsApiClient(
+                    httpClient,
+                    configuration["Meta:PixelId"] ?? "",
+                    configuration["Meta:AccessToken"] ?? "");
+            });
+        }
+        else
+        {
+            services.AddScoped<IConversionsApiClient, NullConversionsApiClient>();
+        }
 
         return services;
     }

@@ -1,14 +1,15 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
-import { useTaskStore } from './store/useTaskStore';
+import { useReleaseStore } from './store/useReleaseStore';
 import { Layout } from './components/Layout';
-import { Tasks } from './components/Tasks';
+import { Releases } from './components/Releases';
+import { ReleaseAnalyticsView } from './components/ReleaseAnalyticsView';
 import { setAccessToken } from './api';
 
 export default function App() {
   const auth = useAuth();
-  const { fetchData, isLoading, error } = useTaskStore();
+  const { fetchData, isLoading, error } = useReleaseStore();
 
   useEffect(() => {
     setAccessToken(auth.user?.access_token);
@@ -74,7 +75,8 @@ export default function App() {
     <BrowserRouter>
       <Layout onLogout={handleLogout}>
         <Routes>
-          <Route path="/" element={<Tasks />} />
+          <Route path="/" element={<Releases />} />
+          <Route path="/releases/:id/analytics" element={<ReleaseAnalyticsView />} />
           <Route path="/callback" element={null} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

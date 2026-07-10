@@ -5,5 +5,6 @@ public record TrackPageViewRequest
     string ReleaseSlug,
     string IpAddress,
     string UserAgent,
-    string? Referrer
+    string? Referrer,
+    string? Country
 );

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { ListChecks, LogOut, ShieldCheck } from 'lucide-react';
+import { LogOut, Music, ShieldCheck } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,7 +9,7 @@ interface LayoutProps {
 
 export function Layout({ children, onLogout }: LayoutProps) {
   const navItems = [
-    { id: 'tasks', label: 'Tasks', icon: ListChecks, path: '/' },
+    { id: 'releases', label: 'Releases', icon: Music, path: '/' },
   ];
 
   return (
@@ -17,7 +17,7 @@ export function Layout({ children, onLogout }: LayoutProps) {
       <header className="bg-surface border-b border-border p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <ShieldCheck className="w-6 h-6 text-primary" />
-          <h1 className="text-lg font-bold tracking-tight uppercase font-mono">{'{ProjectName}'}</h1>
+          <h1 className="text-lg font-bold tracking-tight uppercase font-mono">FanFlow</h1>
         </div>
         <div className="text-[10px] text-text-secondary font-mono tracking-widest uppercase">
           v0.0.0
@@ -31,6 +31,7 @@ export function Layout({ children, onLogout }: LayoutProps) {
               <NavLink
                 key={item.id}
                 to={item.path}
+                end={item.path === '/'}
                 className={({ isActive }) => `w-full flex items-center gap-3 px-6 py-2.5 text-sm font-medium transition-all duration-200 border-r-2 ${
                   isActive
                     ? 'bg-surface-elevated text-text-primary border-primary'
