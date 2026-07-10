@@ -30,10 +30,17 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=servicetemplate;Username=devuser;Password=devpass"
+      Publishing__PublicHostname: "localhost:8081"
+      Publishing__Minio__Endpoint: "http://minio:9000"
+      Publishing__Minio__AccessKey: "minioadmin"
+      Publishing__Minio__SecretKey: "minioadmin"
+      Publishing__Minio__Bucket: "releases"
     ports:
       - "5050:8080"
     depends_on:
       postgres:
+        condition: service_healthy
+      minio:
         condition: service_healthy
 
   frontend:
@@ -45,5 +52,42 @@ services:
     depends_on:
       - backend
 
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Internet-facing static site container: serves published release landing pages straight from
+  # MinIO and proxies the tracking beacons (/pv, /out, /trap) to the backend. This is what
+  # Publishing:PublicHostname (above) points at in production.
+  site:
+    build:
+      context: ./site
+      dockerfile: Dockerfile
+    environment:
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_BUCKET: "releases"
+      BACKEND_HOST: "backend:8080"
+    ports:
+      - "8081:80"
+    depends_on:
+      minio:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
 volumes:
   pgdata:
+  miniodata:

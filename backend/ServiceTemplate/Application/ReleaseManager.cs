@@ -12,7 +12,8 @@ public class ReleaseManager(
     ISlugGenerator slugGenerator,
     IIdGenerator idGenerator,
     IClock clock,
-    ICurrentUserProvider currentUserProvider) : IReleaseManager
+    ICurrentUserProvider currentUserProvider,
+    IPublicSiteSettings publicSiteSettings) : IReleaseManager
 {
     private const string SpotifyPlatform = "spotify";
 
@@ -184,11 +185,11 @@ public class ReleaseManager(
     private static IReadOnlyList<DestinationLinkDto> ToLinkDtos(IReadOnlyList<DestinationLink> links) =>
         links.Select(l => new DestinationLinkDto(l.Platform, l.Url)).ToList();
 
-    private static ReleaseDto ToDto(Release release) =>
+    private ReleaseDto ToDto(Release release) =>
         new(
             release.Id.ToString(),
             release.Slug,
-            $"fanflow.app/{release.Slug}",
+            $"{publicSiteSettings.PublicHostname}/{release.Slug}",
             release.Title,
             release.Headline,
             release.Description,

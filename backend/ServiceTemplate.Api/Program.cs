@@ -95,6 +95,9 @@ using (var scope = app.Services.CreateScope())
     runner.MigrateUp();
 }
 
+// Ensure the MinIO bucket used to publish static release pages exists and is publicly readable
+await app.Services.EnsurePublishingBucketAsync();
+
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {

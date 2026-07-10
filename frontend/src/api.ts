@@ -1,4 +1,4 @@
-import { Task, Release, ReleaseSummary, ReleaseAnalytics } from './types';
+import { Release, ReleaseSummary, ReleaseAnalytics } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050';
 
@@ -23,21 +23,6 @@ const handleResponse = async (res: Response) => {
 };
 
 export const api = {
-  tasks: {
-    getAll: async (): Promise<Task[]> =>
-      fetch(`${API_BASE_URL}/api/tasks?take=100`, { headers: getHeaders() }).then(handleResponse).then(data => data.map((t: any) => new Task(t))),
-    create: async (task: { title: string }): Promise<Task> =>
-      fetch(`${API_BASE_URL}/api/tasks`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(task),
-      }).then(handleResponse).then(data => new Task(data)),
-    delete: async (id: string): Promise<void> =>
-      fetch(`${API_BASE_URL}/api/tasks/${id}`, {
-        method: 'DELETE',
-        headers: getHeaders(),
-      }).then(handleResponse),
-  },
   releases: {
     getAll: async (): Promise<ReleaseSummary[]> =>
       fetch(`${API_BASE_URL}/api/releases`, { headers: getHeaders() }).then(handleResponse).then(data => data.map((r: any) => new ReleaseSummary(r))),

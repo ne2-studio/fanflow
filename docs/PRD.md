@@ -387,10 +387,16 @@ Static Generator
    ↓
 HTML
    ↓
-Shared Volume
+MinIO (public-read bucket)
    ↓
 Nginx
 ```
+
+The .NET backend never writes to a local publish folder — it puts/deletes objects directly in a
+MinIO bucket via the S3 API. A thin Nginx container (deployed independently, its own image) proxies
+public requests straight through to MinIO; the backend's `Publishing:PublicHostname` config is the
+internet-facing hostname of that Nginx container, and is what the release URL shown to authors is
+built from.
 
 ---
 
@@ -399,9 +405,9 @@ Nginx
 ```txt
 Cloudflare
    ↓
-Nginx
+Nginx (site container)
    ↓
-Static HTML
+MinIO (public-read bucket)
 ```
 
 ---

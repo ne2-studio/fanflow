@@ -1,0 +1,25 @@
+server {
+    listen 80;
+    server_name _;
+
+    # Tracking beacons embedded in the static landing pages (/pv, /out, /trap) are proxied
+    # straight through to the backend API.
+    location ~ ^/(pv|out|trap)/ {
+        proxy_pass http://${BACKEND_HOST};
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Everything else is a release slug: proxy straight to the MinIO object for that slug, in S3
+    # path-style addressing (/<bucket>/<key>). The bucket name is folded into the rewritten URI
+    # itself (rather than into proxy_pass's own path) because proxy_pass silently drops any path
+    # segment of its own when the matched location is the bare "/" prefix.
+    # The bucket is public-read (see StaticSiteReleasePublisher.EnsureBucketAsync), so this is a
+    # plain unsigned GET against MinIO's S3 API.
+    location / {
+        rewrite ^/([^/.]+)$ /${MINIO_BUCKET}/$1.html break;
+        rewrite ^/(.*)$ /${MINIO_BUCKET}/$1 break;
+        proxy_pass http://${MINIO_ENDPOINT};
+    }
+}

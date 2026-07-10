@@ -8,7 +8,7 @@ behavior — not a technical design.
 - **Input**: title, headline, description, cover image, background image, CTA text, destination links (Spotify only, MVP)
 - **Output (OK)**: release id, generated slug/URL (e.g. `fanflow.app/<slug>`)
 - **Errors**: `invalid_destination` — non-Spotify link (not idempotent); `slug_taken` (not idempotent); 
-- **Rules**: only Spotify is a valid destination in MVP; creating a release triggers landing page generation and publish (Database → Static Generator → HTML → Shared Volume → Nginx); one landing page per release, auto-managed — there is no separate landing-page entity or publish action
+- **Rules**: only Spotify is a valid destination in MVP; creating a release triggers landing page generation and publish (Database → Static Generator → HTML → MinIO → Nginx); one landing page per release, auto-managed — there is no separate landing-page entity or publish action
 
 ## 2) UpdateRelease
 

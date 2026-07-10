@@ -26,7 +26,8 @@ public class ReleaseManagerTests
             new StaticSlugGenerator(),
             new StaticIdGenerator(GeneratedId),
             new StaticClock(),
-            new StaticCurrentUserProvider(CurrentUserId));
+            new StaticCurrentUserProvider(CurrentUserId),
+            new StaticPublicSiteSettings());
     }
 
     private static CreateReleaseRequest ValidRequest(string title = "Run To Me") => new(
@@ -63,7 +64,8 @@ public class ReleaseManagerTests
 
         var releaseManager2 = new ReleaseManager(
             NullLogger<ReleaseManager>.Instance, repository, publisher, new StaticSlugGenerator(),
-            new StaticIdGenerator(Guid.NewGuid()), new StaticClock(), new StaticCurrentUserProvider("user-2"));
+            new StaticIdGenerator(Guid.NewGuid()), new StaticClock(), new StaticCurrentUserProvider("user-2"),
+            new StaticPublicSiteSettings());
 
         var result = await releaseManager2.CreateAsync(ValidRequest());
 
@@ -114,7 +116,8 @@ public class ReleaseManagerTests
 
         var otherTenantManager = new ReleaseManager(
             NullLogger<ReleaseManager>.Instance, repository, publisher, new StaticSlugGenerator(),
-            new StaticIdGenerator(Guid.NewGuid()), new StaticClock(), new StaticCurrentUserProvider("user-2"));
+            new StaticIdGenerator(Guid.NewGuid()), new StaticClock(), new StaticCurrentUserProvider("user-2"),
+            new StaticPublicSiteSettings());
         await otherTenantManager.CreateAsync(ValidRequest("Other Song"));
 
         var result = await releaseManager.ListAsync();
@@ -131,7 +134,8 @@ public class ReleaseManagerTests
 
         var otherTenantManager = new ReleaseManager(
             NullLogger<ReleaseManager>.Instance, repository, publisher, new StaticSlugGenerator(),
-            new StaticIdGenerator(Guid.NewGuid()), new StaticClock(), new StaticCurrentUserProvider("user-2"));
+            new StaticIdGenerator(Guid.NewGuid()), new StaticClock(), new StaticCurrentUserProvider("user-2"),
+            new StaticPublicSiteSettings());
 
         var result = await otherTenantManager.GetAsync(created.Value.Id);
 

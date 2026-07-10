@@ -1,34 +1,70 @@
 using System.Net;
 using System.Text;
+using Amazon.S3;
+using Amazon.S3.Model;
 using ServiceTemplate.Ports.Output;
 
 namespace ServiceTemplate.Infra;
 
 /// <summary>
-/// Drives the static landing page pipeline (Database -> Static Generator -> HTML -> Shared Volume
-/// -> Nginx): renders one pregenerated, static HTML file per release into a shared directory that
-/// Nginx serves directly. The only JS on the page is a small inline tracking beacon (page-view ping,
-/// dwell-time-aware CTA link, invisible honeypot link) — no framework, no runtime rendering.
+/// Drives the static landing page pipeline (Database -> Static Generator -> HTML -> MinIO -> Nginx):
+/// renders one pregenerated, static HTML file per release into an S3-compatible object store (MinIO)
+/// that a thin Nginx container proxies to the public internet. The only JS on the page is a small
+/// inline tracking beacon (page-view ping, dwell-time-aware CTA link, invisible honeypot link) — no
+/// framework, no runtime rendering.
 /// </summary>
-public class StaticSiteReleasePublisher(string outputDirectory) : IReleasePublisher
+public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName) : IReleasePublisher
 {
-    public Task PublishAsync(Release release)
+    public async Task PublishAsync(Release release)
     {
-        Directory.CreateDirectory(outputDirectory);
         var html = Render(release);
-        return File.WriteAllTextAsync(PathFor(release.Slug), html);
+        await s3Client.PutObjectAsync(new PutObjectRequest
+        {
+            BucketName = bucketName,
+            Key = KeyFor(release.Slug),
+            ContentBody = html,
+            ContentType = "text/html"
+        });
     }
 
-    public Task UnpublishAsync(string slug)
+    public async Task UnpublishAsync(string slug)
     {
-        var path = PathFor(slug);
-        if (File.Exists(path))
-            File.Delete(path);
-
-        return Task.CompletedTask;
+        await s3Client.DeleteObjectAsync(bucketName, KeyFor(slug));
     }
 
-    private string PathFor(string slug) => Path.Combine(outputDirectory, $"{slug}.html");
+    private static string KeyFor(string slug) => $"{slug}.html";
+
+    /// <summary>
+    /// Creates the publishing bucket if missing and grants anonymous read access, since these
+    /// objects are public landing pages served straight through Nginx without request signing.
+    /// Idempotent — safe to call on every startup.
+    /// </summary>
+    public static async Task EnsureBucketAsync(IAmazonS3 s3Client, string bucketName)
+    {
+        try
+        {
+            await s3Client.PutBucketAsync(bucketName);
+        }
+        catch (AmazonS3Exception ex) when (ex.ErrorCode is "BucketAlreadyOwnedByYou" or "BucketAlreadyExists")
+        {
+        }
+
+        await s3Client.PutBucketPolicyAsync(bucketName, PublicReadPolicy(bucketName));
+    }
+
+    private static string PublicReadPolicy(string bucketName) => $$"""
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": ["s3:GetObject"],
+              "Resource": ["arn:aws:s3:::{{bucketName}}/*"]
+            }
+          ]
+        }
+        """;
 
     private static string Render(Release release)
     {
