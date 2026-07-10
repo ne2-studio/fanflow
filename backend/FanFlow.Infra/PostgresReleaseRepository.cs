@@ -13,10 +13,10 @@ public class PostgresReleaseRepository(string connectionString) : IReleaseReposi
         var sql = @"
             INSERT INTO ""Releases""
                 (""Id"", ""TenantId"", ""Slug"", ""Title"", ""Headline"", ""Description"", ""CoverImageUrl"",
-                 ""BackgroundImageUrl"", ""CtaText"", ""LinksJson"", ""Status"", ""CreatedAt"", ""UpdatedAt"")
+                 ""BackgroundImageUrl"", ""CtaText"", ""FacebookPixelId"", ""LinksJson"", ""Status"", ""CreatedAt"", ""UpdatedAt"")
             VALUES
                 (@Id, @TenantId, @Slug, @Title, @Headline, @Description, @CoverImageUrl,
-                 @BackgroundImageUrl, @CtaText, @LinksJson, @Status, @CreatedAt, @UpdatedAt)
+                 @BackgroundImageUrl, @CtaText, @FacebookPixelId, @LinksJson, @Status, @CreatedAt, @UpdatedAt)
             ON CONFLICT (""Id"") DO UPDATE SET
                 ""Slug"" = EXCLUDED.""Slug"",
                 ""Title"" = EXCLUDED.""Title"",
@@ -25,6 +25,7 @@ public class PostgresReleaseRepository(string connectionString) : IReleaseReposi
                 ""CoverImageUrl"" = EXCLUDED.""CoverImageUrl"",
                 ""BackgroundImageUrl"" = EXCLUDED.""BackgroundImageUrl"",
                 ""CtaText"" = EXCLUDED.""CtaText"",
+                ""FacebookPixelId"" = EXCLUDED.""FacebookPixelId"",
                 ""LinksJson"" = EXCLUDED.""LinksJson"",
                 ""Status"" = EXCLUDED.""Status"",
                 ""UpdatedAt"" = EXCLUDED.""UpdatedAt""";
@@ -38,6 +39,15 @@ public class PostgresReleaseRepository(string connectionString) : IReleaseReposi
         var sql = @"SELECT * FROM ""Releases"" WHERE ""Id"" = @Id AND ""TenantId"" = @TenantId";
 
         var row = await connection.QuerySingleOrDefaultAsync<ReleaseRow>(sql, new { Id = id, TenantId = tenantId });
+        return row == null ? null : ToRelease(row);
+    }
+
+    public async Task<Release?> LoadByIdAsync(Guid id)
+    {
+        using var connection = new NpgsqlConnection(connectionString);
+        var sql = @"SELECT * FROM ""Releases"" WHERE ""Id"" = @Id";
+
+        var row = await connection.QuerySingleOrDefaultAsync<ReleaseRow>(sql, new { Id = id });
         return row == null ? null : ToRelease(row);
     }
 
@@ -85,6 +95,7 @@ public class PostgresReleaseRepository(string connectionString) : IReleaseReposi
         release.CoverImageUrl,
         release.BackgroundImageUrl,
         release.CtaText,
+        release.FacebookPixelId,
         LinksJson = JsonSerializer.Serialize(release.Links),
         Status = release.Status.ToString(),
         release.CreatedAt,
@@ -101,6 +112,7 @@ public class PostgresReleaseRepository(string connectionString) : IReleaseReposi
         row.CoverImageUrl,
         row.BackgroundImageUrl,
         row.CtaText,
+        row.FacebookPixelId,
         JsonSerializer.Deserialize<List<DestinationLink>>(row.LinksJson) ?? [],
         Enum.Parse<ReleaseStatus>(row.Status),
         row.CreatedAt,
@@ -117,6 +129,7 @@ public class PostgresReleaseRepository(string connectionString) : IReleaseReposi
         public string CoverImageUrl { get; set; } = "";
         public string BackgroundImageUrl { get; set; } = "";
         public string CtaText { get; set; } = "";
+        public string FacebookPixelId { get; set; } = "";
         public string LinksJson { get; set; } = "[]";
         public string Status { get; set; } = "";
         public DateTime CreatedAt { get; set; }

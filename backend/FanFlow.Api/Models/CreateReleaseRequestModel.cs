@@ -7,4 +7,5 @@ public record CreateReleaseRequestModel(
     string CoverImageUrl,
     string BackgroundImageUrl,
     string CtaText,
+    string FacebookPixelId,
     IReadOnlyList<DestinationLinkModel> Links);

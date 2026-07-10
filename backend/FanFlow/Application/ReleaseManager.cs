@@ -25,6 +25,10 @@ public class ReleaseManager(
         if (invalidDestination != null)
             return Result.Failure<ReleaseDto>(invalidDestination);
 
+        var invalidPixelId = ValidateFacebookPixelId(request.FacebookPixelId);
+        if (invalidPixelId != null)
+            return Result.Failure<ReleaseDto>(invalidPixelId);
+
         var tenantId = currentUserProvider.GetUserId();
         var slug = slugGenerator.Generate(request.Title);
 
@@ -45,6 +49,7 @@ public class ReleaseManager(
             request.CoverImageUrl,
             request.BackgroundImageUrl,
             request.CtaText,
+            request.FacebookPixelId,
             ToLinks(request.Links),
             ReleaseStatus.Published,
             now,
@@ -79,6 +84,13 @@ public class ReleaseManager(
                 return Result.Failure<ReleaseDto>(invalidDestination);
         }
 
+        if (request.FacebookPixelId != null)
+        {
+            var invalidPixelId = ValidateFacebookPixelId(request.FacebookPixelId);
+            if (invalidPixelId != null)
+                return Result.Failure<ReleaseDto>(invalidPixelId);
+        }
+
         var title = request.Title ?? existing.Title;
 
         // Slug is derived from the title, so a title change re-derives the slug. Not explicitly
@@ -111,6 +123,7 @@ public class ReleaseManager(
             CoverImageUrl = request.CoverImageUrl ?? existing.CoverImageUrl,
             BackgroundImageUrl = request.BackgroundImageUrl ?? existing.BackgroundImageUrl,
             CtaText = request.CtaText ?? existing.CtaText,
+            FacebookPixelId = request.FacebookPixelId ?? existing.FacebookPixelId,
             Links = request.Links != null ? ToLinks(request.Links) : existing.Links,
             UpdatedAt = clock.UtcNow()
         };
@@ -179,6 +192,16 @@ public class ReleaseManager(
             : null;
     }
 
+    // FanFlow requires a Meta Pixel on every release — attribution via Conversions API is core
+    // to the product, not an optional add-on. Digits-only also guards the raw URL interpolation
+    // in MetaConversionsApiClient and the landing page's <img> pixel embed from malformed input.
+    private static string? ValidateFacebookPixelId(string? pixelId)
+    {
+        return !string.IsNullOrEmpty(pixelId) && pixelId.All(char.IsDigit)
+            ? null
+            : "invalid_facebook_pixel_id";
+    }
+
     private static IReadOnlyList<DestinationLink> ToLinks(IReadOnlyList<DestinationLinkDto> links) =>
         links.Select(l => new DestinationLink(l.Platform, l.Url)).ToList();
 
@@ -198,6 +221,7 @@ public class ReleaseManager(
             release.CoverImageUrl,
             release.BackgroundImageUrl,
             release.CtaText,
+            release.FacebookPixelId,
             ToLinkDtos(release.Links),
             release.Status.ToString(),
             release.CreatedAt);

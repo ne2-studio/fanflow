@@ -11,6 +11,7 @@ public record ReleaseDto
     string CoverImageUrl,
     string BackgroundImageUrl,
     string CtaText,
+    string FacebookPixelId,
     IReadOnlyList<DestinationLinkDto> Links,
     string Status,
     DateTime CreatedAt

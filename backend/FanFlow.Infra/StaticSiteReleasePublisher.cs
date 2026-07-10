@@ -96,6 +96,7 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName) :
               </style>
             </head>
             <body>
+              <img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id={{Html(release.FacebookPixelId)}}&amp;ev=PageView&amp;noscript=1" />
               <div class="wrap">
                 <img class="cover" src="{{Html(release.CoverImageUrl)}}" alt="{{Html(release.Title)}}" />
                 <h1>{{Html(release.Title)}}</h1>

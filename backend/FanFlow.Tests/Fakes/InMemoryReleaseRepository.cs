@@ -18,6 +18,11 @@ public class InMemoryReleaseRepository : IReleaseRepository
         return Task.FromResult(release != null && release.TenantId == tenantId ? release : null);
     }
 
+    public Task<Release?> LoadByIdAsync(Guid id)
+    {
+        return Task.FromResult(storage.GetValueOrDefault(id));
+    }
+
     public Task<Release?> LoadBySlugAsync(string slug)
     {
         return Task.FromResult(storage.Values.FirstOrDefault(r => r.Slug == slug));

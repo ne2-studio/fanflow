@@ -24,21 +24,29 @@ Request body:
   "coverImageUrl": "https://.../cover.jpg",
   "backgroundImageUrl": "https://.../bg.jpg",
   "ctaText": "Listen Now",
+  "facebookPixelId": "123456789012345",
   "links": [{ "platform": "Spotify", "url": "https://open.spotify.com/track/..." }]
 }
 ```
 
-Response `200 OK`: the created release (id, slug, url, authored fields, status, createdAt).
+`facebookPixelId` is required — FanFlow always forwards conversions to Meta CAPI and embeds the
+Meta Pixel on the landing page, so every release must carry one (numeric string).
 
-`400 Bad Request` — `{ "error": "invalid_destination" }` (non-Spotify link) or `{ "error": "slug_taken" }`.
+Response `200 OK`: the created release (id, slug, url, authored fields including `facebookPixelId`,
+status, createdAt).
+
+`400 Bad Request` — `{ "error": "invalid_destination" }` (non-Spotify link), `{ "error":
+"invalid_facebook_pixel_id" }` (missing or non-numeric), or `{ "error": "slug_taken" }`.
 
 ### `PUT /api/releases/{id}`
 
-Update any subset of a release's authored fields (UpdateRelease). Re-triggers landing page
-regeneration and republish.
+Update any subset of a release's authored fields, including `facebookPixelId` (UpdateRelease).
+Re-triggers landing page regeneration and republish. Omitting `facebookPixelId` keeps the
+existing value — it can never be cleared, only replaced with another valid numeric id.
 
 `404 Not Found` — `{ "error": "release_not_found" }`.
-`400 Bad Request` — `{ "error": "invalid_destination" }` or `{ "error": "slug_taken" }`.
+`400 Bad Request` — `{ "error": "invalid_destination" }`, `{ "error": "invalid_facebook_pixel_id" }`,
+or `{ "error": "slug_taken" }`.
 
 ### `GET /api/releases`
 

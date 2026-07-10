@@ -8,5 +8,6 @@ public record CreateReleaseRequest
     string CoverImageUrl,
     string BackgroundImageUrl,
     string CtaText,
+    string FacebookPixelId,
     IReadOnlyList<DestinationLinkDto> Links
 );

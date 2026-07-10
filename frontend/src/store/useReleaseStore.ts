@@ -9,6 +9,7 @@ interface ReleaseInput {
   coverImageUrl: string;
   backgroundImageUrl: string;
   ctaText: string;
+  facebookPixelId: string;
   links: { platform: string; url: string }[];
 }
 

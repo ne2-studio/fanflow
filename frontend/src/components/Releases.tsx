@@ -13,6 +13,7 @@ interface ReleaseFormState {
   backgroundImageUrl: string;
   ctaText: string;
   spotifyUrl: string;
+  facebookPixelId: string;
 }
 
 const emptyForm: ReleaseFormState = {
@@ -23,6 +24,7 @@ const emptyForm: ReleaseFormState = {
   backgroundImageUrl: '',
   ctaText: 'Listen Now',
   spotifyUrl: '',
+  facebookPixelId: '',
 };
 
 function ReleaseFormModal({
@@ -87,6 +89,10 @@ function ReleaseFormModal({
           <label className="text-xs text-text-secondary">Spotify URL</label>
           <input className="p-2 text-sm rounded-sm" value={form.spotifyUrl} onChange={set('spotifyUrl')} placeholder="https://open.spotify.com/track/..." />
         </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-text-secondary">Facebook Pixel ID</label>
+          <input className="p-2 text-sm rounded-sm" value={form.facebookPixelId} onChange={set('facebookPixelId')} placeholder="123456789012345" />
+        </div>
 
         {error && <p className="text-xs text-error">{error}</p>}
 
@@ -96,7 +102,7 @@ function ReleaseFormModal({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={submitting || !form.title || !form.spotifyUrl}
+            disabled={submitting || !form.title || !form.spotifyUrl || !form.facebookPixelId}
             className="bg-primary text-white px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-sm hover:bg-primary/90 transition-all disabled:opacity-50"
           >
             {submitting ? 'Saving...' : 'Save'}
@@ -121,6 +127,7 @@ export function Releases() {
     coverImageUrl: form.coverImageUrl,
     backgroundImageUrl: form.backgroundImageUrl,
     ctaText: form.ctaText,
+    facebookPixelId: form.facebookPixelId.trim(),
     links: [{ platform: 'Spotify', url: form.spotifyUrl }],
   });
 
@@ -136,6 +143,7 @@ export function Releases() {
         backgroundImageUrl: release.backgroundImageUrl,
         ctaText: release.ctaText,
         spotifyUrl: release.links.find(l => l.platform.toLowerCase() === 'spotify')?.url ?? '',
+        facebookPixelId: release.facebookPixelId,
       },
     });
   };

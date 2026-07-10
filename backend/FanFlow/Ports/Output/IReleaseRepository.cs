@@ -6,6 +6,12 @@ public interface IReleaseRepository
     Task<Release?> LoadByIdAsync(Guid id, string tenantId);
 
     /// <summary>
+    /// Looks up a release by id, regardless of tenant — used by the async spam classifier,
+    /// which runs outside any caller/tenant context.
+    /// </summary>
+    Task<Release?> LoadByIdAsync(Guid id);
+
+    /// <summary>
     /// Looks up a release by its public slug, regardless of tenant — used to resolve
     /// the release for unauthenticated traffic-tracking requests (/pv/*, /out/*, /trap/*).
     /// </summary>

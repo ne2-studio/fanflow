@@ -8,6 +8,7 @@ namespace FanFlow.Application;
 public class SpamClassifier(
     ILogger<SpamClassifier> logger,
     IEventRepository eventRepository,
+    IReleaseRepository releaseRepository,
     IConversionsApiClient conversionsApiClient,
     IClock clock) : ISpamClassifier
 {
@@ -54,9 +55,17 @@ public class SpamClassifier(
 
     private async Task ForwardConversionAsync(TrackedEvent trackedEvent)
     {
+        var release = await releaseRepository.LoadByIdAsync(trackedEvent.ReleaseId);
+        if (release == null)
+        {
+            logger.LogWarning("ForwardConversionAsync - Release {ReleaseId} not found, skipping forward for event {Id}", trackedEvent.ReleaseId, trackedEvent.Id);
+            return;
+        }
+
         var conversionEvent = new ConversionEvent(
             trackedEvent.Type,
             trackedEvent.ReleaseId,
+            release.FacebookPixelId,
             trackedEvent.IpAddress,
             trackedEvent.UserAgent,
             trackedEvent.CreatedAt);

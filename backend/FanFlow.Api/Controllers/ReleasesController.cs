@@ -20,6 +20,7 @@ public class ReleasesController(IReleaseManager releaseManager, IReleaseAnalytic
             request.CoverImageUrl,
             request.BackgroundImageUrl,
             request.CtaText,
+            request.FacebookPixelId,
             ToLinkDtos(request.Links)));
 
         if (!result.IsSuccess)
@@ -38,6 +39,7 @@ public class ReleasesController(IReleaseManager releaseManager, IReleaseAnalytic
             request.CoverImageUrl,
             request.BackgroundImageUrl,
             request.CtaText,
+            request.FacebookPixelId,
             request.Links == null ? null : ToLinkDtos(request.Links)));
 
         if (!result.IsSuccess)

@@ -11,6 +11,7 @@ public record Release
     string CoverImageUrl,
     string BackgroundImageUrl,
     string CtaText,
+    string FacebookPixelId,
     IReadOnlyList<DestinationLink> Links,
     ReleaseStatus Status,
     DateTime CreatedAt,

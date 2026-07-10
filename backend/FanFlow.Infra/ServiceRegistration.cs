@@ -50,7 +50,6 @@ public static class ServiceRegistration
                 var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(MetaConversionsApiClient));
                 return new MetaConversionsApiClient(
                     httpClient,
-                    configuration["Meta:PixelId"] ?? "",
                     configuration["Meta:AccessToken"] ?? "");
             });
         }

@@ -5,16 +5,16 @@ behavior — not a technical design.
 
 ## 1) CreateRelease
 
-- **Input**: title, headline, description, cover image, background image, CTA text, destination links (Spotify only, MVP)
+- **Input**: title, headline, description, cover image, background image, CTA text, Facebook Pixel ID (required), destination links (Spotify only, MVP)
 - **Output (OK)**: release id, generated slug/URL (e.g. `fanflow.app/<slug>`)
-- **Errors**: `invalid_destination` — non-Spotify link (not idempotent); `slug_taken` (not idempotent); 
-- **Rules**: only Spotify is a valid destination in MVP; creating a release triggers landing page generation and publish (Database → Static Generator → HTML → MinIO → Nginx); one landing page per release, auto-managed — there is no separate landing-page entity or publish action
+- **Errors**: `invalid_destination` — non-Spotify link (not idempotent); `invalid_facebook_pixel_id` — missing or non-numeric Pixel ID (not idempotent); `slug_taken` (not idempotent); 
+- **Rules**: only Spotify is a valid destination in MVP; a Facebook Pixel ID is mandatory on every release — FanFlow is attribution-first, so there is no way to publish a release without one; creating a release triggers landing page generation and publish (Database → Static Generator → HTML → MinIO → Nginx); one landing page per release, auto-managed — there is no separate landing-page entity or publish action
 
 ## 2) UpdateRelease
 
-- **Input**: release id, any subset of the authored fields (title, headline, description, cover image, background image, CTA text, links)
+- **Input**: release id, any subset of the authored fields (title, headline, description, cover image, background image, CTA text, Facebook Pixel ID, links)
 - **Output (OK)**: updated release representation
-- **Errors**: `release_not_found` (idempotent); `invalid_destination` (not idempotent); slug/URL can change after publish, previously shared links are ignored, but a warning is shown that they will break
+- **Errors**: `release_not_found` (idempotent); `invalid_destination` (not idempotent); `invalid_facebook_pixel_id` — non-numeric Pixel ID (not idempotent; omitting the field keeps the existing value, since it can never be cleared); slug/URL can change after publish, previously shared links are ignored, but a warning is shown that they will break
 - **Rules**: every update re-triggers landing page regeneration and republish
 
 ## 3) ListReleases
@@ -78,7 +78,7 @@ behavior — not a technical design.
 - **Input**: a PageView or SpotifyClick event classified Human by AnalyzePageView / AnalyzeDestinationClick
 - **Output (OK)**: event forwarded to Meta Conversions API, server-side
 - **Errors**: `meta_api_error` (TODO: confirm with business — retry policy and idempotency/dedupe-by-event-id semantics)
-- **Rules**: only Human-classified events are forwarded; forwarding never happens before async classification completes
+- **Rules**: only Human-classified events are forwarded; forwarding never happens before async classification completes; the Meta Pixel ID used is always the one configured on the event's release (every release has one — see CreateRelease), not a global/app-wide value
 
 ## 12) GetReleaseAnalytics
 

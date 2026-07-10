@@ -10,6 +10,8 @@ public class StaticSiteReleasePublisherTests
 {
     private const string BucketName = "releases";
 
+    private const string PixelId = "123456789012345";
+
     private static Release SampleRelease() => new(
         Guid.NewGuid(),
         "user-1",
@@ -20,6 +22,7 @@ public class StaticSiteReleasePublisherTests
         "https://img/cover.jpg",
         "https://img/bg.jpg",
         "Listen now",
+        PixelId,
         [new DestinationLink("Spotify", "https://open.spotify.com/track/123")],
         ReleaseStatus.Published,
         DateTime.UtcNow,
@@ -38,7 +41,8 @@ public class StaticSiteReleasePublisherTests
                 r.BucketName == BucketName &&
                 r.Key == "run-to-me.html" &&
                 r.ContentType == "text/html" &&
-                r.ContentBody.Contains("Run To Me")),
+                r.ContentBody.Contains("Run To Me") &&
+                r.ContentBody.Contains($"https://www.facebook.com/tr?id={PixelId}")),
             Arg.Any<CancellationToken>());
     }
 

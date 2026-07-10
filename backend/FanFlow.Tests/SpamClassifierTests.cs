@@ -7,7 +7,10 @@ namespace FanFlow.Tests;
 
 public class SpamClassifierTests
 {
+    private const string PixelId = "123456789012345";
+
     private readonly InMemoryEventRepository eventRepository;
+    private readonly InMemoryReleaseRepository releaseRepository;
     private readonly SpyConversionsApiClient conversionsApiClient;
     private readonly StaticClock clock;
     private readonly SpamClassifier spamClassifier;
@@ -16,9 +19,16 @@ public class SpamClassifierTests
     public SpamClassifierTests()
     {
         eventRepository = new InMemoryEventRepository();
+        releaseRepository = new InMemoryReleaseRepository();
         conversionsApiClient = new SpyConversionsApiClient();
         clock = new StaticClock();
-        spamClassifier = new SpamClassifier(NullLogger<SpamClassifier>.Instance, eventRepository, conversionsApiClient, clock);
+        spamClassifier = new SpamClassifier(NullLogger<SpamClassifier>.Instance, eventRepository, releaseRepository, conversionsApiClient, clock);
+
+        releaseRepository.SaveAsync(new Release(
+            releaseId, "user-1", "run-to-me", "Run To Me", "New single out now", "A great song.",
+            "https://img/cover.jpg", "https://img/bg.jpg", "Listen now", PixelId,
+            [new DestinationLink("Spotify", "https://open.spotify.com/track/123")],
+            ReleaseStatus.Published, clock.UtcNow(), clock.UtcNow())).GetAwaiter().GetResult();
     }
 
     private TrackedEvent PageView(string userAgent) => new(
@@ -52,6 +62,7 @@ public class SpamClassifierTests
         Assert.Single(conversionsApiClient.SentEvents);
         Assert.Equal(releaseId, conversionsApiClient.SentEvents[0].ReleaseId);
         Assert.Equal(EventType.PageView, conversionsApiClient.SentEvents[0].Type);
+        Assert.Equal(PixelId, conversionsApiClient.SentEvents[0].PixelId);
     }
 
     [Fact]
@@ -111,5 +122,6 @@ public class SpamClassifierTests
         var stored = await eventRepository.LoadByIdAsync(click.Id);
         Assert.Equal(EventClassification.Human, stored!.Classification);
         Assert.Single(conversionsApiClient.SentEvents);
+        Assert.Equal(PixelId, conversionsApiClient.SentEvents[0].PixelId);
     }
 }

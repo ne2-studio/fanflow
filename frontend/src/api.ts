@@ -35,6 +35,7 @@ export const api = {
       coverImageUrl: string;
       backgroundImageUrl: string;
       ctaText: string;
+      facebookPixelId: string;
       links: { platform: string; url: string }[];
     }): Promise<Release> =>
       fetch(`${API_BASE_URL}/api/releases`, {
@@ -49,6 +50,7 @@ export const api = {
       coverImageUrl: string;
       backgroundImageUrl: string;
       ctaText: string;
+      facebookPixelId: string;
       links: { platform: string; url: string }[];
     }>): Promise<Release> =>
       fetch(`${API_BASE_URL}/api/releases/${id}`, {

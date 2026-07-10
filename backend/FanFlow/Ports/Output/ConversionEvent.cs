@@ -7,6 +7,7 @@ public record ConversionEvent
 (
     EventType Type,
     Guid ReleaseId,
+    string PixelId,
     string IpAddress,
     string UserAgent,
     DateTime OccurredAt
