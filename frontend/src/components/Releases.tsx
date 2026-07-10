@@ -171,8 +171,8 @@ export function Releases() {
               <tr key={release.id} className="hover:bg-surface-elevated/20 transition-colors">
                 <td className="p-4 text-sm font-medium">{release.title}</td>
                 <td className="p-4 text-xs font-mono text-text-secondary">
-                  <a href={`https://fanflow.app/${release.slug}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-primary">
-                    fanflow.app/{release.slug} <ExternalLink className="w-3 h-3" />
+                  <a href={release.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-primary">
+                    {release.url} <ExternalLink className="w-3 h-3" />
                   </a>
                 </td>
                 <td className="p-4 text-xs uppercase tracking-wider text-text-secondary">{release.status}</td>

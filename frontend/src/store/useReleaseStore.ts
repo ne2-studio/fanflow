@@ -30,7 +30,7 @@ interface ReleaseStore {
 }
 
 const toSummary = (release: Release): ReleaseSummary =>
-  new ReleaseSummary({ id: release.id, title: release.title, slug: release.slug, status: release.status, createdAt: release.createdAt });
+  new ReleaseSummary({ id: release.id, title: release.title, slug: release.slug, url: release.url, status: release.status, createdAt: release.createdAt });
 
 export const useReleaseStore = create<ReleaseStore>((set) => ({
   releases: [],

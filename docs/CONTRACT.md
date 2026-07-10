@@ -20,7 +20,7 @@ behavior — not a technical design.
 ## 3) ListReleases
 
 - **Input**: tenant id
-- **Output (OK)**: list of releases with title, slug, status, created date
+- **Output (OK)**: list of releases with title, slug, URL, status, created date
 - **Errors**: none expected; an empty list is a valid result (idempotent)
 - **Rules**: release administration is scoped by tenant/user
 

@@ -13,13 +13,15 @@ export class ReleaseSummary {
   id: string;
   title: string;
   slug: string;
+  url: string;
   status: string;
   createdAt: string;
 
-  constructor(data: { id: string; title: string; slug: string; status: string; createdAt: string }) {
+  constructor(data: { id: string; title: string; slug: string; url: string; status: string; createdAt: string }) {
     this.id = data.id;
     this.title = data.title;
     this.slug = data.slug;
+    this.url = data.url;
     this.status = data.status;
     this.createdAt = data.createdAt;
   }

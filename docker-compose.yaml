@@ -30,7 +30,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=servicetemplate;Username=devuser;Password=devpass"
-      Publishing__PublicHostname: "localhost:8081"
+      Publishing__PublicHostname: "http://localhost:8081"
       Publishing__Minio__Endpoint: "http://minio:9000"
       Publishing__Minio__AccessKey: "minioadmin"
       Publishing__Minio__SecretKey: "minioadmin"

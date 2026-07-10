@@ -185,11 +185,13 @@ public class ReleaseManager(
     private static IReadOnlyList<DestinationLinkDto> ToLinkDtos(IReadOnlyList<DestinationLink> links) =>
         links.Select(l => new DestinationLinkDto(l.Platform, l.Url)).ToList();
 
+    private string UrlFor(Release release) => $"{publicSiteSettings.PublicHostname}/{release.Slug}";
+
     private ReleaseDto ToDto(Release release) =>
         new(
             release.Id.ToString(),
             release.Slug,
-            $"{publicSiteSettings.PublicHostname}/{release.Slug}",
+            UrlFor(release),
             release.Title,
             release.Headline,
             release.Description,
@@ -200,6 +202,12 @@ public class ReleaseManager(
             release.Status.ToString(),
             release.CreatedAt);
 
-    private static ReleaseSummaryDto ToSummaryDto(Release release) =>
-        new(release.Id.ToString(), release.Title, release.Slug, release.Status.ToString(), release.CreatedAt);
+    private ReleaseSummaryDto ToSummaryDto(Release release) =>
+        new(
+            release.Id.ToString(),
+            release.Title,
+            release.Slug,
+            UrlFor(release),
+            release.Status.ToString(),
+            release.CreatedAt);
 }

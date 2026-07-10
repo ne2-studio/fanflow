@@ -43,7 +43,7 @@ regeneration and republish.
 ### `GET /api/releases`
 
 List releases owned by the current tenant/user (ListReleases). Response `200 OK`: array of
-`{ id, title, slug, status, createdAt }`.
+`{ id, title, slug, url, status, createdAt }`.
 
 ### `GET /api/releases/{id}`
 
