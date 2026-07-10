@@ -5,6 +5,7 @@ public record ReleaseDto
     string Id,
     string Slug,
     string Url,
+    string ArtistName,
     string Title,
     string Headline,
     string Description,

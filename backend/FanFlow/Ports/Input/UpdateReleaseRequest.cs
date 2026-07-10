@@ -5,6 +5,7 @@ namespace FanFlow.Ports.Input;
 /// </summary>
 public record UpdateReleaseRequest
 (
+    string? ArtistName,
     string? Title,
     string? Headline,
     string? Description,

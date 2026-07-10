@@ -12,13 +12,14 @@ public class PostgresReleaseRepository(string connectionString) : IReleaseReposi
         using var connection = new NpgsqlConnection(connectionString);
         var sql = @"
             INSERT INTO ""Releases""
-                (""Id"", ""TenantId"", ""Slug"", ""Title"", ""Headline"", ""Description"", ""CoverImageUrl"",
+                (""Id"", ""TenantId"", ""Slug"", ""ArtistName"", ""Title"", ""Headline"", ""Description"", ""CoverImageUrl"",
                  ""BackgroundImageUrl"", ""CtaText"", ""FacebookPixelId"", ""LinksJson"", ""Status"", ""CreatedAt"", ""UpdatedAt"")
             VALUES
-                (@Id, @TenantId, @Slug, @Title, @Headline, @Description, @CoverImageUrl,
+                (@Id, @TenantId, @Slug, @ArtistName, @Title, @Headline, @Description, @CoverImageUrl,
                  @BackgroundImageUrl, @CtaText, @FacebookPixelId, @LinksJson, @Status, @CreatedAt, @UpdatedAt)
             ON CONFLICT (""Id"") DO UPDATE SET
                 ""Slug"" = EXCLUDED.""Slug"",
+                ""ArtistName"" = EXCLUDED.""ArtistName"",
                 ""Title"" = EXCLUDED.""Title"",
                 ""Headline"" = EXCLUDED.""Headline"",
                 ""Description"" = EXCLUDED.""Description"",
@@ -89,6 +90,7 @@ public class PostgresReleaseRepository(string connectionString) : IReleaseReposi
         release.Id,
         release.TenantId,
         release.Slug,
+        release.ArtistName,
         release.Title,
         release.Headline,
         release.Description,
@@ -106,6 +108,7 @@ public class PostgresReleaseRepository(string connectionString) : IReleaseReposi
         row.Id,
         row.TenantId,
         row.Slug,
+        row.ArtistName,
         row.Title,
         row.Headline,
         row.Description,
@@ -123,6 +126,7 @@ public class PostgresReleaseRepository(string connectionString) : IReleaseReposi
         public Guid Id { get; set; }
         public string TenantId { get; set; } = "";
         public string Slug { get; set; } = "";
+        public string ArtistName { get; set; } = "";
         public string Title { get; set; } = "";
         public string Headline { get; set; } = "";
         public string Description { get; set; } = "";

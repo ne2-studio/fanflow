@@ -81,15 +81,16 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName) :
             <head>
               <meta charset="UTF-8" />
               <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-              <title>{{Html(release.Title)}}</title>
-              <meta property="og:title" content="{{Html(release.Title)}}" />
+              <title>{{Html(release.ArtistName)}} - {{Html(release.Title)}}</title>
+              <meta property="og:title" content="{{Html(release.ArtistName)}} - {{Html(release.Title)}}" />
               <meta property="og:description" content="{{Html(release.Description)}}" />
               <meta property="og:image" content="{{Html(release.CoverImageUrl)}}" />
               <style>
                 body { margin: 0; font-family: system-ui, sans-serif; color: #fff; background: #000 url('{{Html(release.BackgroundImageUrl)}}') center/cover no-repeat; }
                 .wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; background: rgba(0,0,0,0.45); }
                 img.cover { width: 220px; height: 220px; object-fit: cover; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
-                h1 { margin: 1.5rem 0 0.25rem; font-size: 1.5rem; }
+                h1 { margin: 0.25rem 0 0.25rem; font-size: 1.5rem; }
+                p.artist { margin: 1.5rem 0 0; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.75; }
                 p.headline { margin: 0 0 1.5rem; opacity: 0.85; }
                 .cta { display: inline-block; padding: 0.9rem 2.5rem; background: #1DB954; color: #fff; text-decoration: none; border-radius: 999px; font-weight: 600; }
                 .trap { position: absolute; left: -9999px; top: -9999px; }
@@ -98,7 +99,8 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName) :
             <body>
               <img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id={{Html(release.FacebookPixelId)}}&amp;ev=PageView&amp;noscript=1" />
               <div class="wrap">
-                <img class="cover" src="{{Html(release.CoverImageUrl)}}" alt="{{Html(release.Title)}}" />
+                <img class="cover" src="{{Html(release.CoverImageUrl)}}" alt="{{Html(release.ArtistName)}} - {{Html(release.Title)}}" />
+                <p class="artist">{{Html(release.ArtistName)}}</p>
                 <h1>{{Html(release.Title)}}</h1>
                 <p class="headline">{{Html(release.Headline)}}</p>
                 {{destinationButtons}}

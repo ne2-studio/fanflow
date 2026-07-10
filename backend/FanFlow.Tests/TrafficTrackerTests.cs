@@ -23,7 +23,7 @@ public class TrafficTrackerTests
             NullLogger<TrafficTracker>.Instance, releaseRepository, eventRepository, new StaticIdGenerator(GeneratedId), new StaticClock());
 
         release = new Release(
-            Guid.NewGuid(), "user-1", "run-to-me", "Run To Me", "headline", "desc", "cover", "bg", "Listen", "123456789012345",
+            Guid.NewGuid(), "user-1", "run-to-me", "The Artist", "Run To Me", "headline", "desc", "cover", "bg", "Listen", "123456789012345",
             [new DestinationLink("Spotify", "https://open.spotify.com/track/123")], ReleaseStatus.Published, DateTime.UtcNow, DateTime.UtcNow);
         releaseRepository.SaveAsync(release).Wait();
     }

@@ -5,6 +5,7 @@ public record Release
     Guid Id,
     string TenantId,
     string Slug,
+    string ArtistName,
     string Title,
     string Headline,
     string Description,

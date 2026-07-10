@@ -29,6 +29,7 @@ export const api = {
     get: async (id: string): Promise<Release> =>
       fetch(`${API_BASE_URL}/api/releases/${id}`, { headers: getHeaders() }).then(handleResponse).then(data => new Release(data)),
     create: async (release: {
+      artistName: string;
       title: string;
       headline: string;
       description: string;
@@ -44,6 +45,7 @@ export const api = {
         body: JSON.stringify(release),
       }).then(handleResponse).then(data => new Release(data)),
     update: async (id: string, release: Partial<{
+      artistName: string;
       title: string;
       headline: string;
       description: string;

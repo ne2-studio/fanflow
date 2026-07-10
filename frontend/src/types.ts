@@ -32,6 +32,7 @@ export class Release {
   id: string;
   slug: string;
   url: string;
+  artistName: string;
   title: string;
   headline: string;
   description: string;
@@ -47,6 +48,7 @@ export class Release {
     id: string;
     slug: string;
     url: string;
+    artistName: string;
     title: string;
     headline: string;
     description: string;
@@ -61,6 +63,7 @@ export class Release {
     this.id = data.id;
     this.slug = data.slug;
     this.url = data.url;
+    this.artistName = data.artistName;
     this.title = data.title;
     this.headline = data.headline;
     this.description = data.description;

@@ -1,6 +1,7 @@
 namespace FanFlow.Api.Models;
 
 public record CreateReleaseRequestModel(
+    string ArtistName,
     string Title,
     string Headline,
     string Description,

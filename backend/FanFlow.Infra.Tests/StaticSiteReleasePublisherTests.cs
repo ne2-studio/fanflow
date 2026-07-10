@@ -16,6 +16,7 @@ public class StaticSiteReleasePublisherTests
         Guid.NewGuid(),
         "user-1",
         "run-to-me",
+        "The Artist",
         "Run To Me",
         "New single out now",
         "A great song.",
@@ -42,6 +43,7 @@ public class StaticSiteReleasePublisherTests
                 r.Key == "run-to-me.html" &&
                 r.ContentType == "text/html" &&
                 r.ContentBody.Contains("Run To Me") &&
+                r.ContentBody.Contains("The Artist") &&
                 r.ContentBody.Contains($"https://www.facebook.com/tr?id={PixelId}")),
             Arg.Any<CancellationToken>());
     }

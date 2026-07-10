@@ -14,6 +14,7 @@ public class ReleasesController(IReleaseManager releaseManager, IReleaseAnalytic
     public async Task<IActionResult> Create([FromBody] CreateReleaseRequestModel request)
     {
         var result = await releaseManager.CreateAsync(new CreateReleaseRequest(
+            request.ArtistName,
             request.Title,
             request.Headline,
             request.Description,
@@ -33,6 +34,7 @@ public class ReleasesController(IReleaseManager releaseManager, IReleaseAnalytic
     public async Task<IActionResult> Update(string id, [FromBody] UpdateReleaseRequestModel request)
     {
         var result = await releaseManager.UpdateAsync(id, new UpdateReleaseRequest(
+            request.ArtistName,
             request.Title,
             request.Headline,
             request.Description,

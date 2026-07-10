@@ -5,14 +5,14 @@ behavior — not a technical design.
 
 ## 1) CreateRelease
 
-- **Input**: title, headline, description, cover image, background image, CTA text, Facebook Pixel ID (required), destination links (Spotify only, MVP)
+- **Input**: artist name, title, headline, description, cover image, background image, CTA text, Facebook Pixel ID (required), destination links (Spotify only, MVP)
 - **Output (OK)**: release id, generated slug/URL (e.g. `fanflow.app/<slug>`)
 - **Errors**: `invalid_destination` — non-Spotify link (not idempotent); `invalid_facebook_pixel_id` — missing or non-numeric Pixel ID (not idempotent); `slug_taken` (not idempotent); 
-- **Rules**: only Spotify is a valid destination in MVP; a Facebook Pixel ID is mandatory on every release — FanFlow is attribution-first, so there is no way to publish a release without one; creating a release triggers landing page generation and publish (Database → Static Generator → HTML → MinIO → Nginx); one landing page per release, auto-managed — there is no separate landing-page entity or publish action
+- **Rules**: only Spotify is a valid destination in MVP; a Facebook Pixel ID is mandatory on every release — FanFlow is attribution-first, so there is no way to publish a release without one; the artist name is mandatory and is displayed on the landing page alongside the title; creating a release triggers landing page generation and publish (Database → Static Generator → HTML → MinIO → Nginx); one landing page per release, auto-managed — there is no separate landing-page entity or publish action
 
 ## 2) UpdateRelease
 
-- **Input**: release id, any subset of the authored fields (title, headline, description, cover image, background image, CTA text, Facebook Pixel ID, links)
+- **Input**: release id, any subset of the authored fields (artist name, title, headline, description, cover image, background image, CTA text, Facebook Pixel ID, links)
 - **Output (OK)**: updated release representation
 - **Errors**: `release_not_found` (idempotent); `invalid_destination` (not idempotent); `invalid_facebook_pixel_id` — non-numeric Pixel ID (not idempotent; omitting the field keeps the existing value, since it can never be cleared); slug/URL can change after publish, previously shared links are ignored, but a warning is shown that they will break
 - **Rules**: every update re-triggers landing page regeneration and republish

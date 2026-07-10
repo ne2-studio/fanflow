@@ -43,6 +43,7 @@ public class ReleaseManager(
             idGenerator.NewId(),
             tenantId,
             slug,
+            request.ArtistName,
             request.Title,
             request.Headline,
             request.Description,
@@ -117,6 +118,7 @@ public class ReleaseManager(
         var updated = existing with
         {
             Slug = slug,
+            ArtistName = request.ArtistName ?? existing.ArtistName,
             Title = title,
             Headline = request.Headline ?? existing.Headline,
             Description = request.Description ?? existing.Description,
@@ -215,6 +217,7 @@ public class ReleaseManager(
             release.Id.ToString(),
             release.Slug,
             UrlFor(release),
+            release.ArtistName,
             release.Title,
             release.Headline,
             release.Description,

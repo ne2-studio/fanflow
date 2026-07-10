@@ -3,6 +3,7 @@ import { Release, ReleaseSummary, ReleaseAnalytics } from '../types';
 import { api } from '../api';
 
 interface ReleaseInput {
+  artistName: string;
   title: string;
   headline: string;
   description: string;

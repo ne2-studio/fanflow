@@ -31,7 +31,7 @@ public class ReleaseManagerTests
     }
 
     private static CreateReleaseRequest ValidRequest(string title = "Run To Me") => new(
-        title, "New single out now", "A great song.", "https://img/cover.jpg", "https://img/bg.jpg", "Listen now",
+        "The Artist", title, "New single out now", "A great song.", "https://img/cover.jpg", "https://img/bg.jpg", "Listen now",
         "123456789012345",
         [new DestinationLinkDto("Spotify", "https://open.spotify.com/track/123")]);
 
@@ -94,7 +94,7 @@ public class ReleaseManagerTests
         var created = await releaseManager.CreateAsync(ValidRequest());
 
         var result = await releaseManager.UpdateAsync(created.Value.Id, new UpdateReleaseRequest(
-            null, "Updated headline", null, null, null, null, null, null));
+            null, null, "Updated headline", null, null, null, null, null, null));
 
         Assert.True(result.IsSuccess);
         Assert.Equal("Updated headline", result.Value.Headline);
@@ -106,7 +106,7 @@ public class ReleaseManagerTests
     public async Task UpdateAsync_ShouldFail_WhenReleaseNotFound()
     {
         var result = await releaseManager.UpdateAsync(Guid.NewGuid().ToString(), new UpdateReleaseRequest(
-            "New title", null, null, null, null, null, null, null));
+            null, "New title", null, null, null, null, null, null, null));
 
         Assert.True(result.IsFailure);
         Assert.Equal("release_not_found", result.Error);
@@ -118,7 +118,7 @@ public class ReleaseManagerTests
         var created = await releaseManager.CreateAsync(ValidRequest());
 
         var result = await releaseManager.UpdateAsync(created.Value.Id, new UpdateReleaseRequest(
-            null, null, null, null, null, null, null, [new DestinationLinkDto("YouTube", "https://youtube.com/x")]));
+            null, null, null, null, null, null, null, null, [new DestinationLinkDto("YouTube", "https://youtube.com/x")]));
 
         Assert.True(result.IsFailure);
         Assert.Equal("invalid_destination", result.Error);
@@ -130,7 +130,7 @@ public class ReleaseManagerTests
         var created = await releaseManager.CreateAsync(ValidRequest());
 
         var result = await releaseManager.UpdateAsync(created.Value.Id, new UpdateReleaseRequest(
-            null, null, null, null, null, null, "999888777666", null));
+            null, null, null, null, null, null, null, "999888777666", null));
 
         Assert.True(result.IsSuccess);
         Assert.Equal("999888777666", result.Value.FacebookPixelId);
@@ -142,7 +142,7 @@ public class ReleaseManagerTests
         var created = await releaseManager.CreateAsync(ValidRequest());
 
         var result = await releaseManager.UpdateAsync(created.Value.Id, new UpdateReleaseRequest(
-            null, null, null, null, null, null, "not-numeric", null));
+            null, null, null, null, null, null, null, "not-numeric", null));
 
         Assert.True(result.IsFailure);
         Assert.Equal("invalid_facebook_pixel_id", result.Error);
@@ -154,7 +154,7 @@ public class ReleaseManagerTests
         var created = await releaseManager.CreateAsync(ValidRequest());
 
         var result = await releaseManager.UpdateAsync(created.Value.Id, new UpdateReleaseRequest(
-            null, "Updated headline", null, null, null, null, null, null));
+            null, null, "Updated headline", null, null, null, null, null, null));
 
         Assert.True(result.IsSuccess);
         Assert.Equal("123456789012345", result.Value.FacebookPixelId);

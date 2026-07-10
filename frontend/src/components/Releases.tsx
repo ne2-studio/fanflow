@@ -6,6 +6,7 @@ import { api } from '../api';
 import { Release } from '../types';
 
 interface ReleaseFormState {
+  artistName: string;
   title: string;
   headline: string;
   description: string;
@@ -17,6 +18,7 @@ interface ReleaseFormState {
 }
 
 const emptyForm: ReleaseFormState = {
+  artistName: '',
   title: '',
   headline: '',
   description: '',
@@ -62,6 +64,10 @@ function ReleaseFormModal({
         <h3 className="text-sm font-mono uppercase tracking-widest text-text-secondary">Release</h3>
 
         <div className="flex flex-col gap-1">
+          <label className="text-xs text-text-secondary">Artist name</label>
+          <input className="p-2 text-sm rounded-sm" value={form.artistName} onChange={set('artistName')} />
+        </div>
+        <div className="flex flex-col gap-1">
           <label className="text-xs text-text-secondary">Title</label>
           <input className="p-2 text-sm rounded-sm" value={form.title} onChange={set('title')} />
         </div>
@@ -102,7 +108,7 @@ function ReleaseFormModal({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={submitting || !form.title || !form.spotifyUrl || !form.facebookPixelId}
+            disabled={submitting || !form.artistName || !form.title || !form.spotifyUrl || !form.facebookPixelId}
             className="bg-primary text-white px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-sm hover:bg-primary/90 transition-all disabled:opacity-50"
           >
             {submitting ? 'Saving...' : 'Save'}
@@ -121,6 +127,7 @@ export function Releases() {
   const formatDate = (val: string) => new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(val));
 
   const toRequest = (form: ReleaseFormState) => ({
+    artistName: form.artistName,
     title: form.title,
     headline: form.headline,
     description: form.description,
@@ -136,6 +143,7 @@ export function Releases() {
     setEditing({
       id,
       form: {
+        artistName: release.artistName,
         title: release.title,
         headline: release.headline,
         description: release.description,
