@@ -74,6 +74,36 @@ public class MetaConversionsApiClientTests
         Assert.Equal("curl/8.0", userData.GetProperty("client_user_agent").GetString());
     }
 
+    [Fact]
+    public async Task SendConversionEventAsync_ShouldOmitTestEventCode_WhenNotConfigured()
+    {
+        var handler = new CapturingHttpMessageHandler();
+        var client = new MetaConversionsApiClient(new HttpClient(handler), "token");
+
+        var conversionEvent = new ConversionEvent(
+            EventType.DestinationClick, Guid.NewGuid(), PixelId, "1.2.3.4", "Mozilla/5.0", DateTime.UtcNow, "artist-title");
+
+        await client.SendConversionEventAsync(conversionEvent);
+
+        using var json = JsonDocument.Parse(handler.CapturedBody!);
+        Assert.False(json.RootElement.TryGetProperty("test_event_code", out _));
+    }
+
+    [Fact]
+    public async Task SendConversionEventAsync_ShouldIncludeTestEventCode_WhenConfigured()
+    {
+        var handler = new CapturingHttpMessageHandler();
+        var client = new MetaConversionsApiClient(new HttpClient(handler), "token", "TEST12345");
+
+        var conversionEvent = new ConversionEvent(
+            EventType.DestinationClick, Guid.NewGuid(), PixelId, "1.2.3.4", "Mozilla/5.0", DateTime.UtcNow, "artist-title");
+
+        await client.SendConversionEventAsync(conversionEvent);
+
+        using var json = JsonDocument.Parse(handler.CapturedBody!);
+        Assert.Equal("TEST12345", json.RootElement.GetProperty("test_event_code").GetString());
+    }
+
     private static JsonElement UserDataFrom(string? body)
     {
         Assert.NotNull(body);

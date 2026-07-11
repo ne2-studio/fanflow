@@ -34,6 +34,9 @@ public class SpamClassifierTests
     private TrackedEvent PageView(string userAgent) => new(
         Guid.NewGuid(), releaseId, EventType.PageView, "1.2.3.4", userAgent, null, null, null, "US", null, null, clock.UtcNow());
 
+    private TrackedEvent DestinationClick(string userAgent, int dwellTimeMs = 5000) => new(
+        Guid.NewGuid(), releaseId, EventType.DestinationClick, "1.2.3.4", userAgent, null, "spotify", dwellTimeMs, "US", null, null, clock.UtcNow());
+
     [Fact]
     public async Task AnalyzePageViewAsync_ShouldClassifyBot_WhenUserAgentIsKnownCrawler()
     {
@@ -49,7 +52,7 @@ public class SpamClassifierTests
     }
 
     [Fact]
-    public async Task AnalyzePageViewAsync_ShouldClassifyHumanAndForwardConversion_WhenSignalsAreClean()
+    public async Task AnalyzePageViewAsync_ShouldClassifyHuman_ButNotForwardToCapi_WhenSignalsAreClean()
     {
         var pageView = PageView("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15");
         await eventRepository.SaveAsync(pageView);
@@ -59,37 +62,7 @@ public class SpamClassifierTests
         Assert.True(result.IsSuccess);
         var stored = await eventRepository.LoadByIdAsync(pageView.Id);
         Assert.Equal(EventClassification.Human, stored!.Classification);
-        Assert.Single(conversionsApiClient.SentEvents);
-        Assert.Equal(releaseId, conversionsApiClient.SentEvents[0].ReleaseId);
-        Assert.Equal(EventType.PageView, conversionsApiClient.SentEvents[0].Type);
-        Assert.Equal(PixelId, conversionsApiClient.SentEvents[0].PixelId);
-    }
-
-    [Fact]
-    public async Task AnalyzePageViewAsync_ShouldForwardFbpAndFbc_WhenPresentOnTheEvent()
-    {
-        var pageView = PageView("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15")
-            with { Fbp = "fb.1.111.abc", Fbc = "fb.1.222.xyz" };
-        await eventRepository.SaveAsync(pageView);
-
-        await spamClassifier.AnalyzePageViewAsync(pageView.Id.ToString());
-
-        Assert.Single(conversionsApiClient.SentEvents);
-        Assert.Equal("fb.1.111.abc", conversionsApiClient.SentEvents[0].Fbp);
-        Assert.Equal("fb.1.222.xyz", conversionsApiClient.SentEvents[0].Fbc);
-    }
-
-    [Fact]
-    public async Task AnalyzePageViewAsync_ShouldForwardNullFbpAndFbc_WhenAbsentOnTheEvent()
-    {
-        var pageView = PageView("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15");
-        await eventRepository.SaveAsync(pageView);
-
-        await spamClassifier.AnalyzePageViewAsync(pageView.Id.ToString());
-
-        Assert.Single(conversionsApiClient.SentEvents);
-        Assert.Null(conversionsApiClient.SentEvents[0].Fbp);
-        Assert.Null(conversionsApiClient.SentEvents[0].Fbc);
+        Assert.Empty(conversionsApiClient.SentEvents);
     }
 
     [Fact]
@@ -150,5 +123,32 @@ public class SpamClassifierTests
         Assert.Equal(EventClassification.Human, stored!.Classification);
         Assert.Single(conversionsApiClient.SentEvents);
         Assert.Equal(PixelId, conversionsApiClient.SentEvents[0].PixelId);
+    }
+
+    [Fact]
+    public async Task AnalyzeDestinationClickAsync_ShouldForwardFbpAndFbc_WhenPresentOnTheEvent()
+    {
+        var click = DestinationClick("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15")
+            with { Fbp = "fb.1.111.abc", Fbc = "fb.1.222.xyz" };
+        await eventRepository.SaveAsync(click);
+
+        await spamClassifier.AnalyzeDestinationClickAsync(click.Id.ToString());
+
+        Assert.Single(conversionsApiClient.SentEvents);
+        Assert.Equal("fb.1.111.abc", conversionsApiClient.SentEvents[0].Fbp);
+        Assert.Equal("fb.1.222.xyz", conversionsApiClient.SentEvents[0].Fbc);
+    }
+
+    [Fact]
+    public async Task AnalyzeDestinationClickAsync_ShouldForwardNullFbpAndFbc_WhenAbsentOnTheEvent()
+    {
+        var click = DestinationClick("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15");
+        await eventRepository.SaveAsync(click);
+
+        await spamClassifier.AnalyzeDestinationClickAsync(click.Id.ToString());
+
+        Assert.Single(conversionsApiClient.SentEvents);
+        Assert.Null(conversionsApiClient.SentEvents[0].Fbp);
+        Assert.Null(conversionsApiClient.SentEvents[0].Fbc);
     }
 }

@@ -48,13 +48,20 @@ public static class ServiceRegistration
         var metaConversionsEnabled = configuration.GetValue<bool>("Features:MetaConversions:Enabled");
         if (metaConversionsEnabled)
         {
+            // test_event_code lets Meta's Test Events tool show events without polluting real
+            // reporting; only attached when explicitly opted into via the flag below, since it
+            // should never be set for genuine production traffic.
+            var sendTestEvents = configuration.GetValue<bool>("Features:MetaConversions:SendTestEvents");
+            var testEventCode = sendTestEvents ? configuration["Meta:TestEventCode"] : null;
+
             services.AddHttpClient();
             services.AddScoped<IConversionsApiClient>(sp =>
             {
                 var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(MetaConversionsApiClient));
                 return new MetaConversionsApiClient(
                     httpClient,
-                    configuration["Meta:AccessToken"] ?? "");
+                    configuration["Meta:AccessToken"] ?? "",
+                    testEventCode);
             });
         }
         else

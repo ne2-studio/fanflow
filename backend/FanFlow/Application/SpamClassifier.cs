@@ -48,7 +48,9 @@ public class SpamClassifier(
 
         logger.LogInformation("AnalyzeAsync - Event {Id} classified as {Classification} (score {Score})", eventId, classification, score);
 
-        if (classification == EventClassification.Human)
+        // Only SpotifyClick (DestinationClick) events are forwarded to Meta CAPI — PageView
+        // events are tracked internally for bot filtering but aren't a conversion Meta cares about.
+        if (classification == EventClassification.Human && classified.Type == EventType.DestinationClick)
             await ForwardConversionAsync(classified);
 
         return Result.Success();

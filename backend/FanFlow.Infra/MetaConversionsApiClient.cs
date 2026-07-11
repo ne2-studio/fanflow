@@ -8,27 +8,28 @@ namespace FanFlow.Infra;
 /// Sends server-side conversion events to the Meta Conversions API
 /// (https://developers.facebook.com/docs/marketing-api/conversions-api).
 /// </summary>
-public class MetaConversionsApiClient(HttpClient httpClient, string accessToken) : IConversionsApiClient
+public class MetaConversionsApiClient(HttpClient httpClient, string accessToken, string? testEventCode = null) : IConversionsApiClient
 {
     public async Task<Result> SendConversionEventAsync(ConversionEvent conversionEvent)
     {
-        var payload = new
+        var eventData = new[]
         {
-            data = new[]
+            new
             {
-                new
+                event_name = ToMetaEventName(conversionEvent.Type),
+                event_time = new DateTimeOffset(conversionEvent.OccurredAt).ToUnixTimeSeconds(),
+                action_source = "website",
+                user_data = UserData(conversionEvent),
+                custom_data = new
                 {
-                    event_name = ToMetaEventName(conversionEvent.Type),
-                    event_time = new DateTimeOffset(conversionEvent.OccurredAt).ToUnixTimeSeconds(),
-                    action_source = "website",
-                    user_data = UserData(conversionEvent),
-                    custom_data = new
-                    {
-                        content_name = conversionEvent.ContentName
-                    }
+                    content_name = conversionEvent.ContentName
                 }
             }
         };
+
+        object payload = string.IsNullOrWhiteSpace(testEventCode)
+            ? new { data = eventData }
+            : new { data = eventData, test_event_code = testEventCode };
 
         var response = await httpClient.PostAsJsonAsync(
             $"https://graph.facebook.com/v18.0/{conversionEvent.PixelId}/events?access_token={accessToken}", payload);
