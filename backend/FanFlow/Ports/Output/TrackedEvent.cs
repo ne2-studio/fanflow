@@ -18,5 +18,7 @@ public record TrackedEvent
     string? Country,
     int? BotScore,
     EventClassification? Classification,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    string? Fbp = null,
+    string? Fbc = null
 );

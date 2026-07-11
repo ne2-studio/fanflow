@@ -70,7 +70,9 @@ public class SpamClassifier(
             trackedEvent.IpAddress,
             trackedEvent.UserAgent,
             trackedEvent.CreatedAt,
-            slugGenerator.Generate($"{release.ArtistName} {release.Title}"));
+            slugGenerator.Generate($"{release.ArtistName} {release.Title}"),
+            trackedEvent.Fbp,
+            trackedEvent.Fbc);
 
         var result = await conversionsApiClient.SendConversionEventAsync(conversionEvent);
         if (result.IsFailure)

@@ -104,19 +104,28 @@ which is classified `Bot` synchronously at record time).
 
 ## Tracking (`ITrafficTracker`) — public, unauthenticated, rate-limited
 
-### `GET /pv/{slug}`
+### `GET /pv/{slug}?fbp=<_fbp>&fbc=<_fbc>`
 
 Records a landing-page view (TrackPageView), unclassified. Response `204 No Content`.
 `404 Not Found` if the release doesn't exist.
 
-### `GET /out/{slug}/{destinationId}?dwell=<ms>`
+`fbp`/`fbc` are optional: the landing page's own JS reads the browser's `_fbp`/`_fbc` cookies
+(deriving `_fbc` from a `?fbclid=` ad-click param when the cookie isn't set yet) and forwards
+them as query params. If omitted, the backend falls back to the `_fbp`/`_fbc` cookies on the
+request itself. Either way, the values are carried through to the Meta Conversions API call for
+this event (see "Meta Conversions API" below) — they only improve event matching/attribution,
+they play no role in bot classification.
+
+### `GET /out/{slug}/{destinationId}?dwell=<ms>&fbp=<_fbp>&fbc=<_fbc>`
 
 Records a destination click (TrackDestinationClick). Response `204 No Content` — it does not
 redirect; the landing page performs the redirect itself, client-side (native app deep-link
 attempt with a web fallback), firing this request in parallel rather than waiting on it.
 Recording happens regardless of spam classification, which runs asynchronously afterward.
 `destinationId` is the link's platform (e.g. `spotify`). `dwell` is the time in ms since the
-page view, measured client-side. `404 Not Found` if the release or destination doesn't exist.
+page view, measured client-side. `fbp`/`fbc` are optional, same semantics as `/pv` above — read
+fresh at click time rather than reused from the page view, to give the Pixel more time to have
+set `_fbp`. `404 Not Found` if the release or destination doesn't exist.
 
 ### `GET /trap/{slug}`
 

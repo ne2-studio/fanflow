@@ -196,7 +196,31 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName, I
                   var ua = navigator.userAgent || '';
                   var isAndroid = /Android/i.test(ua);
                   var isIOS = /iPhone|iPad|iPod/i.test(ua);
-                  fetch('/pv/' + slug, { method: 'GET', keepalive: true }).catch(function () {});
+
+                  // _fbp is set by the Meta Pixel; _fbc is set by Meta when present, or derived here
+                  // from a ?fbclid= ad-click param using Meta's own "fb.1.<ms>.<fbclid>" convention.
+                  // Both are read fresh per beacon (not cached at page load) since the Pixel may not
+                  // have written _fbp yet by the time the initial PageView beacon fires.
+                  function fbCookie(name) {
+                    var match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+                    return match ? decodeURIComponent(match[1]) : null;
+                  }
+
+                  function fbTrackingParams() {
+                    var params = [];
+                    var fbp = fbCookie('_fbp');
+                    var fbc = fbCookie('_fbc');
+                    if (!fbc) {
+                      var fbclid = new URLSearchParams(location.search).get('fbclid');
+                      if (fbclid) fbc = 'fb.1.' + Date.now() + '.' + fbclid;
+                    }
+                    if (fbp) params.push('fbp=' + encodeURIComponent(fbp));
+                    if (fbc) params.push('fbc=' + encodeURIComponent(fbc));
+                    return params;
+                  }
+
+                  var pvParams = fbTrackingParams();
+                  fetch('/pv/' + slug + (pvParams.length ? '?' + pvParams.join('&') : ''), { method: 'GET', keepalive: true }).catch(function () {});
 
                   document.querySelectorAll('.cta').forEach(function (btn) {
                     btn.addEventListener('click', function (e) {
@@ -211,7 +235,10 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName, I
                       var appUri = btn.getAttribute('data-app-uri');
                       var androidIntent = btn.getAttribute('data-android-intent');
 
-                      fetch('/out/' + slug + '/' + destination + '?dwell=' + dwell, { method: 'GET', keepalive: true }).catch(function () {});
+                      var clickParams = fbTrackingParams();
+                      var outUrl = '/out/' + slug + '/' + destination + '?dwell=' + dwell +
+                        clickParams.map(function (p) { return '&' + p; }).join('');
+                      fetch(outUrl, { method: 'GET', keepalive: true }).catch(function () {});
 
                       if (isAndroid && androidIntent) {
                         location.href = androidIntent;

@@ -13,10 +13,10 @@ public class PostgresEventRepository(string connectionString) : IEventRepository
         var sql = @"
             INSERT INTO ""Events""
                 (""Id"", ""ReleaseId"", ""Type"", ""IpAddress"", ""UserAgent"", ""Referrer"", ""DestinationId"",
-                 ""DwellTimeMs"", ""Country"", ""BotScore"", ""Classification"", ""CreatedAt"")
+                 ""DwellTimeMs"", ""Country"", ""BotScore"", ""Classification"", ""CreatedAt"", ""Fbp"", ""Fbc"")
             VALUES
                 (@Id, @ReleaseId, @Type, @IpAddress, @UserAgent, @Referrer, @DestinationId,
-                 @DwellTimeMs, @Country, @BotScore, @Classification, @CreatedAt)
+                 @DwellTimeMs, @Country, @BotScore, @Classification, @CreatedAt, @Fbp, @Fbc)
             ON CONFLICT (""Id"") DO UPDATE SET
                 ""BotScore"" = EXCLUDED.""BotScore"",
                 ""Classification"" = EXCLUDED.""Classification""";
@@ -140,7 +140,9 @@ public class PostgresEventRepository(string connectionString) : IEventRepository
         e.Country,
         e.BotScore,
         Classification = e.Classification?.ToString(),
-        e.CreatedAt
+        e.CreatedAt,
+        e.Fbp,
+        e.Fbc
     };
 
     private static TrackedEvent ToTrackedEvent(EventRow row) => new(
@@ -155,7 +157,9 @@ public class PostgresEventRepository(string connectionString) : IEventRepository
         row.Country,
         row.BotScore,
         row.Classification == null ? null : Enum.Parse<EventClassification>(row.Classification),
-        row.CreatedAt);
+        row.CreatedAt,
+        row.Fbp,
+        row.Fbc);
 
     private class EventRow
     {
@@ -171,5 +175,7 @@ public class PostgresEventRepository(string connectionString) : IEventRepository
         public int? BotScore { get; set; }
         public string? Classification { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string? Fbp { get; set; }
+        public string? Fbc { get; set; }
     }
 }

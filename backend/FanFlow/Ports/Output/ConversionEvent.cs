@@ -11,5 +11,7 @@ public record ConversionEvent
     string IpAddress,
     string UserAgent,
     DateTime OccurredAt,
-    string ContentName
+    string ContentName,
+    string? Fbp = null,
+    string? Fbc = null
 );

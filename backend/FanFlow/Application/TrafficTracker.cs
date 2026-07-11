@@ -33,7 +33,9 @@ public class TrafficTracker(
             request.Country,
             BotScore: null,
             Classification: null,
-            clock.UtcNow());
+            clock.UtcNow(),
+            request.Fbp,
+            request.Fbc);
 
         await eventRepository.SaveAsync(trackedEvent);
 
@@ -71,7 +73,9 @@ public class TrafficTracker(
             request.Country,
             BotScore: null,
             Classification: null,
-            clock.UtcNow());
+            clock.UtcNow(),
+            request.Fbp,
+            request.Fbc);
 
         await eventRepository.SaveAsync(trackedEvent);
 

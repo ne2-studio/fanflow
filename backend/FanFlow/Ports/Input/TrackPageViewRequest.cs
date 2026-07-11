@@ -6,5 +6,7 @@ public record TrackPageViewRequest
     string IpAddress,
     string UserAgent,
     string? Referrer,
-    string? Country
+    string? Country,
+    string? Fbp = null,
+    string? Fbc = null
 );

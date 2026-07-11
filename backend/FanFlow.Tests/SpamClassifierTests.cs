@@ -66,6 +66,33 @@ public class SpamClassifierTests
     }
 
     [Fact]
+    public async Task AnalyzePageViewAsync_ShouldForwardFbpAndFbc_WhenPresentOnTheEvent()
+    {
+        var pageView = PageView("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15")
+            with { Fbp = "fb.1.111.abc", Fbc = "fb.1.222.xyz" };
+        await eventRepository.SaveAsync(pageView);
+
+        await spamClassifier.AnalyzePageViewAsync(pageView.Id.ToString());
+
+        Assert.Single(conversionsApiClient.SentEvents);
+        Assert.Equal("fb.1.111.abc", conversionsApiClient.SentEvents[0].Fbp);
+        Assert.Equal("fb.1.222.xyz", conversionsApiClient.SentEvents[0].Fbc);
+    }
+
+    [Fact]
+    public async Task AnalyzePageViewAsync_ShouldForwardNullFbpAndFbc_WhenAbsentOnTheEvent()
+    {
+        var pageView = PageView("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15");
+        await eventRepository.SaveAsync(pageView);
+
+        await spamClassifier.AnalyzePageViewAsync(pageView.Id.ToString());
+
+        Assert.Single(conversionsApiClient.SentEvents);
+        Assert.Null(conversionsApiClient.SentEvents[0].Fbp);
+        Assert.Null(conversionsApiClient.SentEvents[0].Fbc);
+    }
+
+    [Fact]
     public async Task AnalyzePageViewAsync_ShouldBeNoOp_WhenEventAlreadyClassified()
     {
         var pageView = PageView("Googlebot/2.1") with { BotScore = 10, Classification = EventClassification.Human };

@@ -8,5 +8,7 @@ public record TrackDestinationClickRequest
     string UserAgent,
     string? Referrer,
     int DwellTimeMs,
-    string? Country
+    string? Country,
+    string? Fbp = null,
+    string? Fbc = null
 );

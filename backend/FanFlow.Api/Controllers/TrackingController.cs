@@ -19,7 +19,7 @@ public class TrackingController(ITrafficTracker trafficTracker) : ControllerBase
     public async Task<IActionResult> TrackPageView(string slug)
     {
         var result = await trafficTracker.TrackPageViewAsync(new TrackPageViewRequest(
-            slug, ClientIp(), UserAgent(), Referrer(), Country()));
+            slug, ClientIp(), UserAgent(), Referrer(), Country(), Fbp(), Fbc()));
 
         return result.IsSuccess ? NoContent() : NotFound();
     }
@@ -28,7 +28,7 @@ public class TrackingController(ITrafficTracker trafficTracker) : ControllerBase
     public async Task<IActionResult> TrackDestinationClick(string slug, string destinationId, [FromQuery] int dwell = 0)
     {
         var result = await trafficTracker.TrackDestinationClickAsync(new TrackDestinationClickRequest(
-            slug, destinationId, ClientIp(), UserAgent(), Referrer(), dwell, Country()));
+            slug, destinationId, ClientIp(), UserAgent(), Referrer(), dwell, Country(), Fbp(), Fbc()));
 
         return result.IsSuccess ? NoContent() : NotFound();
     }
@@ -57,5 +57,27 @@ public class TrackingController(ITrafficTracker trafficTracker) : ControllerBase
     {
         var country = Request.Headers["CF-IPCountry"].ToString();
         return string.IsNullOrWhiteSpace(country) ? null : country;
+    }
+
+    // Meta's own _fbp/_fbc cookie values rarely exceed ~60 chars; this cap is a generous
+    // sanity bound against malformed/abusive input, not an attempt to validate Meta's format.
+    private const int MaxFbTrackingValueLength = 256;
+
+    /// <summary>
+    /// The client-supplied ?fbp= query param takes priority over the raw _fbp cookie (the landing
+    /// page reads the cookie itself and forwards it explicitly); the cookie is only a fallback for
+    /// clients that don't send the query param.
+    /// </summary>
+    private string? Fbp() => Sanitize(Request.Query["fbp"].FirstOrDefault()) ?? Sanitize(Request.Cookies["_fbp"]);
+
+    private string? Fbc() => Sanitize(Request.Query["fbc"].FirstOrDefault()) ?? Sanitize(Request.Cookies["_fbc"]);
+
+    private static string? Sanitize(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var trimmed = value.Trim();
+        return trimmed.Length > MaxFbTrackingValueLength ? null : trimmed;
     }
 }

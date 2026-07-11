@@ -156,6 +156,52 @@ public class StaticSiteReleasePublisherTests
     }
 
     [Fact]
+    public async Task PublishAsync_ShouldReadFbpAndFbcCookies_AndAttachThemToThePageViewBeacon()
+    {
+        var s3Client = Substitute.For<IAmazonS3>();
+        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName, new SlugGenerator());
+
+        await publisher.PublishAsync(SampleRelease());
+
+        await s3Client.Received(1).PutObjectAsync(
+            Arg.Is<PutObjectRequest>(r =>
+                r.ContentBody.Contains("fbCookie('_fbp')") &&
+                r.ContentBody.Contains("fbCookie('_fbc')") &&
+                r.ContentBody.Contains("fetch('/pv/' + slug + (pvParams.length ? '?' + pvParams.join('&') : '')")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task PublishAsync_ShouldDeriveFbcFromFbclid_WhenNoFbcCookieExists()
+    {
+        var s3Client = Substitute.For<IAmazonS3>();
+        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName, new SlugGenerator());
+
+        await publisher.PublishAsync(SampleRelease());
+
+        await s3Client.Received(1).PutObjectAsync(
+            Arg.Is<PutObjectRequest>(r =>
+                r.ContentBody.Contains("new URLSearchParams(location.search).get('fbclid')") &&
+                r.ContentBody.Contains("'fb.1.' + Date.now() + '.' + fbclid")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task PublishAsync_ShouldReReadFbpAndFbc_AtDestinationClickTime()
+    {
+        var s3Client = Substitute.For<IAmazonS3>();
+        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName, new SlugGenerator());
+
+        await publisher.PublishAsync(SampleRelease());
+
+        await s3Client.Received(1).PutObjectAsync(
+            Arg.Is<PutObjectRequest>(r =>
+                r.ContentBody.Contains("var clickParams = fbTrackingParams();") &&
+                r.ContentBody.Contains("'/out/' + slug + '/' + destination + '?dwell=' + dwell +")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task UnpublishAsync_ShouldDeleteObject_ForSlugKey()
     {
         var s3Client = Substitute.For<IAmazonS3>();

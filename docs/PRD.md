@@ -260,6 +260,13 @@ SpotifyClick
 
 Server-side, but only after bot / spam check has been performed.
 
+`user_data` includes `client_ip_address`/`client_user_agent` always, plus `fbp`/`fbc` when the
+browser captured them (`_fbp`/`_fbc` cookies, with `_fbc` derived from a `fbclid` ad-click param
+when the cookie isn't set yet) — they improve Meta's event matching/attribution for the
+server-side event, they are not used for browser/server event deduplication (`PageView` and
+`SpotifyClick` are distinct events and don't share an `event_id`). Both fields are optional and
+omitted from the payload entirely when unavailable.
+
 ---
 
 # 7. Bot Detection
