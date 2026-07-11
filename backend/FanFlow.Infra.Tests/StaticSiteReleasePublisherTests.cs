@@ -127,6 +127,35 @@ public class StaticSiteReleasePublisherTests
     }
 
     [Fact]
+    public async Task PublishAsync_ShouldInlinePlayOverlaySvg_OnCoverArt_WhenALinkExists()
+    {
+        var s3Client = Substitute.For<IAmazonS3>();
+        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName, new SlugGenerator());
+
+        await publisher.PublishAsync(SampleRelease());
+
+        await s3Client.Received(1).PutObjectAsync(
+            Arg.Is<PutObjectRequest>(r =>
+                r.ContentBody.Contains("<svg class=\"play-overlay\"") &&
+                !r.ContentBody.Contains("play-button-overlay")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task PublishAsync_ShouldOmitPlayOverlay_WhenReleaseHasNoLinks()
+    {
+        var s3Client = Substitute.For<IAmazonS3>();
+        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName, new SlugGenerator());
+        var release = SampleRelease() with { Links = [] };
+
+        await publisher.PublishAsync(release);
+
+        await s3Client.Received(1).PutObjectAsync(
+            Arg.Is<PutObjectRequest>(r => !r.ContentBody.Contains("<svg class=\"play-overlay\"")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task UnpublishAsync_ShouldDeleteObject_ForSlugKey()
     {
         var s3Client = Substitute.For<IAmazonS3>();

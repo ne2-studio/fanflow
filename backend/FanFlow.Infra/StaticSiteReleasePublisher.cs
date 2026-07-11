@@ -82,6 +82,13 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName, I
 
     private const string PlaySvg = """<svg class="play" viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>""";
 
+    /// <summary>
+    /// Play-button overlay drawn on top of the cover art, inline as SVG so it never adds a second
+    /// HTTP request (unlike the hand-composited Canva overlay this replaces, which baked the button
+    /// into the uploaded image itself).
+    /// </summary>
+    private const string PlayOverlaySvg = """<svg class="play-overlay" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="rgba(255,255,255,.15)" stroke="#fff" stroke-width="3"/><path fill="#fff" d="M42 32 72 50 42 68Z"/></svg>""";
+
     private static string IconFor(string platform) => platform.Equals("spotify", StringComparison.OrdinalIgnoreCase)
         ? SpotifyLogoSvg
         : "";
@@ -107,6 +114,7 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName, I
         var primaryLink = release.Links.Count > 0 ? release.Links[0] : null;
         var coverAttrs = new StringBuilder();
         var coverTag = "div";
+        var coverOverlay = "";
         if (primaryLink != null)
         {
             var (coverAppUri, coverAndroidIntent) = BuildDeepLinks(primaryLink);
@@ -116,6 +124,7 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName, I
                 coverAttrs.Append($" data-app-uri=\"{Html(coverAppUri)}\"");
             if (coverAndroidIntent != null)
                 coverAttrs.Append($" data-android-intent=\"{Html(coverAndroidIntent)}\"");
+            coverOverlay = PlayOverlaySvg;
         }
 
         var hasDescription = !string.IsNullOrWhiteSpace(release.Headline);
@@ -146,7 +155,8 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName, I
                 #bg::after { content: ""; position: absolute; inset: 0; -webkit-backdrop-filter: blur(60px) saturate(1.4); backdrop-filter: blur(60px) saturate(1.4); background: linear-gradient(180deg, rgba(13,13,13,.35) 0%, rgba(13,13,13,.85) 100%); }
                 #i { opacity: 0; position: absolute; }
                 #top { padding: 8px 4px 18px; margin-bottom: 8px; }
-                #a { display: inline-block; width: 320px; height: 320px; border-radius: 14px; background: url('{{Html(release.CoverImageUrl)}}') 50% no-repeat; background-size: cover; box-shadow: 0 10px 30px rgba(0,0,0,.45); margin: 0 auto; cursor: pointer; }
+                #a { display: inline-block; position: relative; width: 320px; height: 320px; border-radius: 14px; background: url('{{Html(release.CoverImageUrl)}}') 50% no-repeat; background-size: cover; box-shadow: 0 10px 30px rgba(0,0,0,.45); margin: 0 auto; cursor: pointer; }
+                .play-overlay { position: absolute; top: 50%; left: 50%; width: 30%; height: 30%; transform: translate(-50%, -50%); filter: drop-shadow(0 4px 14px rgba(0,0,0,.35)); pointer-events: none; }
                 #t { margin: 18px 0 4px; font-size: 25px; font-weight: 700; letter-spacing: -.01em; }
                 #t + #d { margin-top: 12px; }
                 #d { font-size: 14px; line-height: 1.45; color: rgba(255,255,255,.72); margin: 0 6px 4px; white-space: pre-line; }
@@ -169,7 +179,7 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName, I
               <div id="bg"></div>
               <main>
                 <div id="top">
-                  <{{coverTag}} id="a" aria-label="Artwork"{{coverAttrs}}></{{coverTag}}>
+                  <{{coverTag}} id="a" aria-label="Artwork"{{coverAttrs}}>{{coverOverlay}}</{{coverTag}}>
                   <div id="t">{{Html(release.ArtistName)}} - {{Html(release.Title)}}</div>
                   {{(hasDescription ? $"<div id=\"d\">{Html(release.Headline)}</div>" : "")}}
                 </div>
