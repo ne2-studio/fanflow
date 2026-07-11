@@ -86,3 +86,10 @@ behavior — not a technical design.
 - **Output (OK)**: views, qualified views, clicks, CTR, traffic sources, countries, devices
 - **Errors**: `release_not_found` (idempotent)
 - **Rules**: "qualified" figures exclude Bot-classified events; filter toggles between all traffic and human-only traffic
+
+## 13) ListReleaseEvents
+
+- **Input**: release id
+- **Output (OK)**: full list of tracked events for the release (type, IP address, user agent, referrer, destination, dwell time, country, bot score, classification, timestamp), newest first
+- **Errors**: `release_not_found` (idempotent); an empty list is a valid result (idempotent)
+- **Rules**: includes every event type (PageView, DestinationClick, HoneypotHit) regardless of classification status, unaggregated and unfiltered — unlike GetReleaseAnalytics, this is a raw audit trail, not a reporting summary

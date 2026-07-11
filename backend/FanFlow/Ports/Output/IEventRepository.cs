@@ -20,4 +20,10 @@ public interface IEventRepository
     Task<int> CountRecentByIpAsync(string ipAddress, DateTime since);
 
     Task<EventAnalyticsSummary> GetAnalyticsSummaryAsync(Guid releaseId, TrafficFilter filter);
+
+    /// <summary>
+    /// Every tracked event for the release, regardless of type or classification status, newest
+    /// first — backs the raw per-release audit/event list.
+    /// </summary>
+    Task<IReadOnlyList<TrackedEvent>> ListByReleaseAsync(Guid releaseId);
 }

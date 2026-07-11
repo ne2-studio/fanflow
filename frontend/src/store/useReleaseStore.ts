@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Release, ReleaseSummary, ReleaseAnalytics } from '../types';
+import { Release, ReleaseSummary, ReleaseAnalytics, TrackedEvent } from '../types';
 import { api } from '../api';
 
 interface ReleaseInput {
@@ -21,6 +21,9 @@ interface ReleaseStore {
   analytics: ReleaseAnalytics | null;
   analyticsLoading: boolean;
 
+  events: TrackedEvent[];
+  eventsLoading: boolean;
+
   fetchData: () => Promise<void>;
 
   addRelease: (release: ReleaseInput) => Promise<Release>;
@@ -28,6 +31,7 @@ interface ReleaseStore {
   deleteRelease: (id: string) => Promise<void>;
 
   loadAnalytics: (id: string, filter: 'all' | 'human') => Promise<void>;
+  loadEvents: (id: string) => Promise<void>;
 }
 
 const toSummary = (release: Release): ReleaseSummary =>
@@ -40,6 +44,9 @@ export const useReleaseStore = create<ReleaseStore>((set) => ({
 
   analytics: null,
   analyticsLoading: false,
+
+  events: [],
+  eventsLoading: false,
 
   fetchData: async () => {
     set({ isLoading: true, error: null });
@@ -78,6 +85,16 @@ export const useReleaseStore = create<ReleaseStore>((set) => ({
       set({ analytics, analyticsLoading: false });
     } catch (error) {
       set({ error: (error as Error).message, analyticsLoading: false });
+    }
+  },
+
+  loadEvents: async (id) => {
+    set({ eventsLoading: true });
+    try {
+      const events = await api.releases.getEvents(id);
+      set({ events, eventsLoading: false });
+    } catch (error) {
+      set({ error: (error as Error).message, eventsLoading: false });
     }
   },
 }));

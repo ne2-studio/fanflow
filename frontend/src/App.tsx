@@ -5,6 +5,7 @@ import { useReleaseStore } from './store/useReleaseStore';
 import { Layout } from './components/Layout';
 import { Releases } from './components/Releases';
 import { ReleaseAnalyticsView } from './components/ReleaseAnalyticsView';
+import { ReleaseEventsView } from './components/ReleaseEventsView';
 import { setAccessToken } from './api';
 
 export default function App() {
@@ -77,6 +78,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Releases />} />
           <Route path="/releases/:id/analytics" element={<ReleaseAnalyticsView />} />
+          <Route path="/releases/:id/events" element={<ReleaseEventsView />} />
           <Route path="/callback" element={null} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -1,4 +1,4 @@
-import { Release, ReleaseSummary, ReleaseAnalytics } from './types';
+import { Release, ReleaseSummary, ReleaseAnalytics, TrackedEvent } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050';
 
@@ -94,5 +94,8 @@ export const api = {
     getAnalytics: async (id: string, filter: 'all' | 'human'): Promise<ReleaseAnalytics> =>
       fetch(`${API_BASE_URL}/api/releases/${id}/analytics?filter=${filter}`, { headers: getHeaders() })
         .then(handleResponse).then(data => new ReleaseAnalytics(data)),
+    getEvents: async (id: string): Promise<TrackedEvent[]> =>
+      fetch(`${API_BASE_URL}/api/releases/${id}/events`, { headers: getHeaders() })
+        .then(handleResponse).then(data => data.map((e: any) => new TrackedEvent(e))),
   },
 };

@@ -102,6 +102,17 @@ public class ReleasesController(IReleaseManager releaseManager, IReleaseAnalytic
         return Ok(result.Value);
     }
 
+    [HttpGet("{id}/events")]
+    public async Task<IActionResult> GetEvents(string id)
+    {
+        var result = await releaseAnalytics.ListEventsAsync(id);
+
+        if (!result.IsSuccess)
+            return MapFailure(result.Error);
+
+        return Ok(result.Value);
+    }
+
     private static IReadOnlyList<DestinationLinkDto> ToLinkDtos(IReadOnlyList<DestinationLinkModel> links) =>
         links.Select(l => new DestinationLinkDto(l.Platform, l.Url)).ToList();
 

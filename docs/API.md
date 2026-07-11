@@ -90,6 +90,18 @@ Response `200 OK`:
 
 `404 Not Found` — `{ "error": "release_not_found" }`.
 
+### `GET /api/releases/{id}/events`
+
+Raw, unaggregated list of every tracked event (PageView, DestinationClick, HoneypotHit) recorded
+for a release, newest first — for audit/investigation purposes (ListReleaseEvents).
+
+Response `200 OK`: array of
+`{ id, type, ipAddress, userAgent, referrer, destinationId, dwellTimeMs, country, botScore, classification, createdAt }`.
+`botScore`/`classification` are `null` until async spam analysis has run (except `HoneypotHit`,
+which is classified `Bot` synchronously at record time).
+
+`404 Not Found` — `{ "error": "release_not_found" }`.
+
 ## Tracking (`ITrafficTracker`) — public, unauthenticated, rate-limited
 
 ### `GET /pv/{slug}`

@@ -89,4 +89,42 @@ public class ReleaseAnalyticsTests
         Assert.Contains(result.Value.Countries, b => b.Label == "US" && b.Count == 2);
         Assert.Contains(result.Value.Countries, b => b.Label == "PT" && b.Count == 1);
     }
+
+    [Fact]
+    public async Task ListEventsAsync_ShouldFail_WhenReleaseNotFound()
+    {
+        var result = await releaseAnalytics.ListEventsAsync(Guid.NewGuid().ToString());
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("release_not_found", result.Error);
+    }
+
+    [Fact]
+    public async Task ListEventsAsync_ShouldReturnAllEventTypes_RegardlessOfClassification()
+    {
+        var honeypotHit = new TrackedEvent(
+            Guid.NewGuid(), release.Id, EventType.HoneypotHit, "5.6.7.8", "curl/8.0", null, null, null, null,
+            100, EventClassification.Bot, DateTime.UtcNow);
+
+        await eventRepository.SaveAsync(PageView(EventClassification.Human));
+        await eventRepository.SaveAsync(PageView(null));
+        await eventRepository.SaveAsync(Click(EventClassification.Human));
+        await eventRepository.SaveAsync(honeypotHit);
+
+        var result = await releaseAnalytics.ListEventsAsync(release.Id.ToString());
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(4, result.Value.Count);
+        Assert.Contains(result.Value, e => e.Type == "HoneypotHit" && e.Classification == "Bot");
+        Assert.Contains(result.Value, e => e.Type == "PageView" && e.Classification == null);
+    }
+
+    [Fact]
+    public async Task ListEventsAsync_ShouldReturnEmptyList_WhenNoEventsRecorded()
+    {
+        var result = await releaseAnalytics.ListEventsAsync(release.Id.ToString());
+
+        Assert.True(result.IsSuccess);
+        Assert.Empty(result.Value);
+    }
 }

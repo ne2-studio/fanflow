@@ -112,3 +112,45 @@ export class ReleaseAnalytics {
     this.devices = data.devices.map(b => (b instanceof BreakdownItem ? b : new BreakdownItem(b)));
   }
 }
+
+// Shape returned by GET /api/releases/{id}/events (ListReleaseEvents) — raw audit trail, one row
+// per tracked PageView/DestinationClick/HoneypotHit.
+export class TrackedEvent {
+  id: string;
+  type: string;
+  ipAddress: string;
+  userAgent: string;
+  referrer: string | null;
+  destinationId: string | null;
+  dwellTimeMs: number | null;
+  country: string | null;
+  botScore: number | null;
+  classification: string | null;
+  createdAt: string;
+
+  constructor(data: {
+    id: string;
+    type: string;
+    ipAddress: string;
+    userAgent: string;
+    referrer: string | null;
+    destinationId: string | null;
+    dwellTimeMs: number | null;
+    country: string | null;
+    botScore: number | null;
+    classification: string | null;
+    createdAt: string;
+  }) {
+    this.id = data.id;
+    this.type = data.type;
+    this.ipAddress = data.ipAddress;
+    this.userAgent = data.userAgent;
+    this.referrer = data.referrer;
+    this.destinationId = data.destinationId;
+    this.dwellTimeMs = data.dwellTimeMs;
+    this.country = data.country;
+    this.botScore = data.botScore;
+    this.classification = data.classification;
+    this.createdAt = data.createdAt;
+  }
+}

@@ -56,6 +56,16 @@ public class InMemoryEventRepository : IEventRepository
         return Task.FromResult(summary);
     }
 
+    public Task<IReadOnlyList<TrackedEvent>> ListByReleaseAsync(Guid releaseId)
+    {
+        var events = storage.Values
+            .Where(e => e.ReleaseId == releaseId)
+            .OrderByDescending(e => e.CreatedAt)
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<TrackedEvent>>(events);
+    }
+
     private static IReadOnlyList<EventCountBreakdown> Breakdown(IEnumerable<TrackedEvent> events, Func<TrackedEvent, string> keySelector) =>
         events.GroupBy(keySelector).Select(g => new EventCountBreakdown(g.Key, g.Count())).ToList();
 }

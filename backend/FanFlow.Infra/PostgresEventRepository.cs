@@ -86,6 +86,18 @@ public class PostgresEventRepository(string connectionString) : IEventRepository
             Breakdown(filteredViews, e => DeviceFromUserAgent(e.UserAgent)));
     }
 
+    public async Task<IReadOnlyList<TrackedEvent>> ListByReleaseAsync(Guid releaseId)
+    {
+        using var connection = new NpgsqlConnection(connectionString);
+        var sql = @"
+            SELECT * FROM ""Events""
+            WHERE ""ReleaseId"" = @ReleaseId
+            ORDER BY ""CreatedAt"" DESC";
+
+        var rows = await connection.QueryAsync<EventRow>(sql, new { ReleaseId = releaseId });
+        return rows.Select(ToTrackedEvent).ToList();
+    }
+
     private static IReadOnlyList<EventCountBreakdown> Breakdown(IEnumerable<TrackedEvent> events, Func<TrackedEvent, string> keySelector) =>
         events
             .GroupBy(keySelector)

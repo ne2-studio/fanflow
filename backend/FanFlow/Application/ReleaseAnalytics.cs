@@ -40,6 +40,37 @@ public class ReleaseAnalytics(
         return Result.Success(dto);
     }
 
+    public async Task<Result<IReadOnlyList<TrackedEventDto>>> ListEventsAsync(string releaseId)
+    {
+        logger.LogInformation("ListEventsAsync - Fetching events for release {Id}", releaseId);
+
+        if (!Guid.TryParse(releaseId, out var id))
+            return Result.Failure<IReadOnlyList<TrackedEventDto>>("release_not_found");
+
+        var tenantId = currentUserProvider.GetUserId();
+        var release = await releaseRepository.LoadByIdAsync(id, tenantId);
+
+        if (release == null || release.Status == ReleaseStatus.Deleted)
+            return Result.Failure<IReadOnlyList<TrackedEventDto>>("release_not_found");
+
+        var events = await eventRepository.ListByReleaseAsync(release.Id);
+
+        return Result.Success<IReadOnlyList<TrackedEventDto>>(events.Select(ToDto).ToList());
+    }
+
     private static IReadOnlyList<BreakdownItemDto> ToBreakdown(IReadOnlyList<EventCountBreakdown> breakdown) =>
         breakdown.Select(b => new BreakdownItemDto(b.Label, b.Count)).ToList();
+
+    private static TrackedEventDto ToDto(TrackedEvent e) => new(
+        e.Id.ToString(),
+        e.Type.ToString(),
+        e.IpAddress,
+        e.UserAgent,
+        e.Referrer,
+        e.DestinationId,
+        e.DwellTimeMs,
+        e.Country,
+        e.BotScore,
+        e.Classification?.ToString(),
+        e.CreatedAt);
 }

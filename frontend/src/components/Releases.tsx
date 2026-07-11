@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Trash2, Pencil, BarChart3, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, Pencil, BarChart3, ExternalLink, History } from 'lucide-react';
 import { useReleaseStore } from '../store/useReleaseStore';
 import { api } from '../api';
 import { Release } from '../types';
@@ -217,6 +217,9 @@ export function Releases() {
                   <div className="flex justify-end gap-1">
                     <Link to={`/releases/${release.id}/analytics`} className="p-1.5 text-text-secondary hover:text-primary transition-all" title="Analytics">
                       <BarChart3 className="w-3.5 h-3.5" />
+                    </Link>
+                    <Link to={`/releases/${release.id}/events`} className="p-1.5 text-text-secondary hover:text-primary transition-all" title="Events">
+                      <History className="w-3.5 h-3.5" />
                     </Link>
                     <button onClick={() => openEdit(release.id)} className="p-1.5 text-text-secondary hover:text-primary transition-all" title="Edit">
                       <Pencil className="w-3.5 h-3.5" />
