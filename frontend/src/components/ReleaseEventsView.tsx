@@ -38,6 +38,8 @@ export function ReleaseEventsView() {
               <th className="p-4 whitespace-nowrap">Country</th>
               <th className="p-4">User agent</th>
               <th className="p-4">Referrer</th>
+              <th className="p-4 whitespace-nowrap">fbp</th>
+              <th className="p-4 whitespace-nowrap">fbc</th>
               <th className="p-4 whitespace-nowrap">Dwell</th>
               <th className="p-4 whitespace-nowrap">Recorded at</th>
             </tr>
@@ -58,13 +60,15 @@ export function ReleaseEventsView() {
                 <td className="p-4 text-xs text-text-secondary whitespace-nowrap">{event.country ?? 'Unknown'}</td>
                 <td className="p-4 text-xs text-text-secondary max-w-xs truncate" title={event.userAgent}>{event.userAgent}</td>
                 <td className="p-4 text-xs text-text-secondary max-w-xs truncate" title={event.referrer ?? undefined}>{event.referrer ?? 'Direct'}</td>
+                <td className="p-4 text-xs font-mono text-text-secondary max-w-xs truncate" title={event.fbp ?? undefined}>{event.fbp ?? '-'}</td>
+                <td className="p-4 text-xs font-mono text-text-secondary max-w-xs truncate" title={event.fbc ?? undefined}>{event.fbc ?? '-'}</td>
                 <td className="p-4 text-xs font-mono text-text-secondary whitespace-nowrap">{event.dwellTimeMs != null ? `${event.dwellTimeMs}ms` : '-'}</td>
                 <td className="p-4 text-xs font-mono text-text-secondary whitespace-nowrap">{formatDate(event.createdAt)}</td>
               </tr>
             ))}
             {!eventsLoading && events.length === 0 && (
               <tr>
-                <td colSpan={9} className="p-12 text-center text-text-secondary italic text-xs">
+                <td colSpan={11} className="p-12 text-center text-text-secondary italic text-xs">
                   No events recorded yet.
                 </td>
               </tr>

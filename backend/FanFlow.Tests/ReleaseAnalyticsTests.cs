@@ -120,6 +120,18 @@ public class ReleaseAnalyticsTests
     }
 
     [Fact]
+    public async Task ListEventsAsync_ShouldIncludeFbpAndFbc_WhenPresentOnTheEvent()
+    {
+        var pageView = PageView(EventClassification.Human) with { Fbp = "fb.1.111.abc", Fbc = "fb.1.222.xyz" };
+        await eventRepository.SaveAsync(pageView);
+
+        var result = await releaseAnalytics.ListEventsAsync(release.Id.ToString());
+
+        Assert.True(result.IsSuccess);
+        Assert.Contains(result.Value, e => e.Fbp == "fb.1.111.abc" && e.Fbc == "fb.1.222.xyz");
+    }
+
+    [Fact]
     public async Task ListEventsAsync_ShouldReturnEmptyList_WhenNoEventsRecorded()
     {
         var result = await releaseAnalytics.ListEventsAsync(release.Id.ToString());

@@ -13,4 +13,6 @@ public record TrackedEventDto(
     string? Country,
     int? BotScore,
     string? Classification,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? Fbp,
+    string? Fbc);

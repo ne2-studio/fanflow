@@ -72,5 +72,7 @@ public class ReleaseAnalytics(
         e.Country,
         e.BotScore,
         e.Classification?.ToString(),
-        e.CreatedAt);
+        e.CreatedAt,
+        e.Fbp,
+        e.Fbc);
 }

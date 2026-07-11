@@ -127,6 +127,8 @@ export class TrackedEvent {
   botScore: number | null;
   classification: string | null;
   createdAt: string;
+  fbp: string | null;
+  fbc: string | null;
 
   constructor(data: {
     id: string;
@@ -140,6 +142,8 @@ export class TrackedEvent {
     botScore: number | null;
     classification: string | null;
     createdAt: string;
+    fbp: string | null;
+    fbc: string | null;
   }) {
     this.id = data.id;
     this.type = data.type;
@@ -152,5 +156,7 @@ export class TrackedEvent {
     this.botScore = data.botScore;
     this.classification = data.classification;
     this.createdAt = data.createdAt;
+    this.fbp = data.fbp;
+    this.fbc = data.fbc;
   }
 }
