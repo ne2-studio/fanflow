@@ -9,8 +9,7 @@ public record UpdateReleaseRequest
     string? Title,
     string? Headline,
     string? Description,
-    string? CoverImageUrl,
-    string? BackgroundImageUrl,
+    UploadedFile? CoverImage,
     string? CtaText,
     string? FacebookPixelId,
     IReadOnlyList<DestinationLinkDto>? Links

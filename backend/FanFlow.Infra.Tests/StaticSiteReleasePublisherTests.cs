@@ -21,7 +21,6 @@ public class StaticSiteReleasePublisherTests
         "New single out now",
         "A great song.",
         "https://img/cover.jpg",
-        "https://img/bg.jpg",
         "Listen now",
         PixelId,
         [new DestinationLink("Spotify", "https://open.spotify.com/track/123")],
@@ -44,7 +43,10 @@ public class StaticSiteReleasePublisherTests
                 r.ContentType == "text/html" &&
                 r.ContentBody.Contains("Run To Me") &&
                 r.ContentBody.Contains("The Artist") &&
-                r.ContentBody.Contains($"https://www.facebook.com/tr?id={PixelId}")),
+                r.ContentBody.Contains($"https://www.facebook.com/tr?id={PixelId}") &&
+                r.ContentBody.Contains("class=\"backdrop\"") &&
+                r.ContentBody.Contains("url('https://img/cover.jpg')") &&
+                !r.ContentBody.Contains("bg.jpg")),
             Arg.Any<CancellationToken>());
     }
 

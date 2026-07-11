@@ -12,12 +12,16 @@ public class ReleaseManagerTests
 
     private readonly InMemoryReleaseRepository repository;
     private readonly SpyReleasePublisher publisher;
+    private readonly StaticImageProcessor imageProcessor;
+    private readonly InMemoryImageStorage imageStorage;
     private readonly ReleaseManager releaseManager;
 
     public ReleaseManagerTests()
     {
         repository = new InMemoryReleaseRepository();
         publisher = new SpyReleasePublisher();
+        imageProcessor = new StaticImageProcessor();
+        imageStorage = new InMemoryImageStorage();
 
         releaseManager = new ReleaseManager(
             NullLogger<ReleaseManager>.Instance,
@@ -27,13 +31,22 @@ public class ReleaseManagerTests
             new StaticIdGenerator(GeneratedId),
             new StaticClock(),
             new StaticCurrentUserProvider(CurrentUserId),
-            new StaticPublicSiteSettings());
+            new StaticPublicSiteSettings(),
+            imageProcessor,
+            imageStorage);
     }
 
+    private static UploadedFile ValidCoverImage() => new("image/jpeg", [1, 2, 3, 4]);
+
     private static CreateReleaseRequest ValidRequest(string title = "Run To Me") => new(
-        "The Artist", title, "New single out now", "A great song.", "https://img/cover.jpg", "https://img/bg.jpg", "Listen now",
+        "The Artist", title, "New single out now", "A great song.", ValidCoverImage(), "Listen now",
         "123456789012345",
         [new DestinationLinkDto("Spotify", "https://open.spotify.com/track/123")]);
+
+    private ReleaseManager NewManagerFor(string userId, Guid id) => new(
+        NullLogger<ReleaseManager>.Instance, repository, publisher, new StaticSlugGenerator(),
+        new StaticIdGenerator(id), new StaticClock(), new StaticCurrentUserProvider(userId),
+        new StaticPublicSiteSettings(), imageProcessor, imageStorage);
 
     [Fact]
     public async Task CreateAsync_ShouldSaveAndPublish_WhenDestinationIsSpotify()
@@ -73,14 +86,57 @@ public class ReleaseManagerTests
     }
 
     [Fact]
+    public async Task CreateAsync_ShouldFail_WhenCoverImageIsMissing()
+    {
+        var request = ValidRequest() with { CoverImage = null };
+
+        var result = await releaseManager.CreateAsync(request);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("cover_image_required", result.Error);
+        Assert.Empty(publisher.PublishedReleases);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldFail_WhenCoverImageContentTypeIsNotAllowed()
+    {
+        var request = ValidRequest() with { CoverImage = new UploadedFile("application/pdf", [1, 2, 3]) };
+
+        var result = await releaseManager.CreateAsync(request);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("invalid_cover_image_type", result.Error);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldFail_WhenCoverImageIsTooLarge()
+    {
+        var request = ValidRequest() with { CoverImage = new UploadedFile("image/jpeg", new byte[10 * 1024 * 1024 + 1]) };
+
+        var result = await releaseManager.CreateAsync(request);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("cover_image_too_large", result.Error);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldProcessAndStoreCoverImage_UnderReleaseIdKey()
+    {
+        var result = await releaseManager.CreateAsync(ValidRequest());
+
+        Assert.True(result.IsSuccess);
+        Assert.Single(imageStorage.SavedImages);
+        Assert.Equal($"{GeneratedId}/cover.webp", imageStorage.SavedImages[0].Key);
+        Assert.Equal("image/webp", imageStorage.SavedImages[0].ContentType);
+        Assert.Equal($"https://cdn.test/{GeneratedId}/cover.webp", result.Value.CoverImageUrl);
+    }
+
+    [Fact]
     public async Task CreateAsync_ShouldFail_WhenSlugIsAlreadyTaken()
     {
         await releaseManager.CreateAsync(ValidRequest());
 
-        var releaseManager2 = new ReleaseManager(
-            NullLogger<ReleaseManager>.Instance, repository, publisher, new StaticSlugGenerator(),
-            new StaticIdGenerator(Guid.NewGuid()), new StaticClock(), new StaticCurrentUserProvider("user-2"),
-            new StaticPublicSiteSettings());
+        var releaseManager2 = NewManagerFor("user-2", Guid.NewGuid());
 
         var result = await releaseManager2.CreateAsync(ValidRequest());
 
@@ -94,7 +150,7 @@ public class ReleaseManagerTests
         var created = await releaseManager.CreateAsync(ValidRequest());
 
         var result = await releaseManager.UpdateAsync(created.Value.Id, new UpdateReleaseRequest(
-            null, null, "Updated headline", null, null, null, null, null, null));
+            null, null, "Updated headline", null, null, null, null, null));
 
         Assert.True(result.IsSuccess);
         Assert.Equal("Updated headline", result.Value.Headline);
@@ -106,7 +162,7 @@ public class ReleaseManagerTests
     public async Task UpdateAsync_ShouldFail_WhenReleaseNotFound()
     {
         var result = await releaseManager.UpdateAsync(Guid.NewGuid().ToString(), new UpdateReleaseRequest(
-            null, "New title", null, null, null, null, null, null, null));
+            null, "New title", null, null, null, null, null, null));
 
         Assert.True(result.IsFailure);
         Assert.Equal("release_not_found", result.Error);
@@ -118,7 +174,7 @@ public class ReleaseManagerTests
         var created = await releaseManager.CreateAsync(ValidRequest());
 
         var result = await releaseManager.UpdateAsync(created.Value.Id, new UpdateReleaseRequest(
-            null, null, null, null, null, null, null, null, [new DestinationLinkDto("YouTube", "https://youtube.com/x")]));
+            null, null, null, null, null, null, null, [new DestinationLinkDto("YouTube", "https://youtube.com/x")]));
 
         Assert.True(result.IsFailure);
         Assert.Equal("invalid_destination", result.Error);
@@ -130,7 +186,7 @@ public class ReleaseManagerTests
         var created = await releaseManager.CreateAsync(ValidRequest());
 
         var result = await releaseManager.UpdateAsync(created.Value.Id, new UpdateReleaseRequest(
-            null, null, null, null, null, null, null, "999888777666", null));
+            null, null, null, null, null, null, "999888777666", null));
 
         Assert.True(result.IsSuccess);
         Assert.Equal("999888777666", result.Value.FacebookPixelId);
@@ -142,7 +198,7 @@ public class ReleaseManagerTests
         var created = await releaseManager.CreateAsync(ValidRequest());
 
         var result = await releaseManager.UpdateAsync(created.Value.Id, new UpdateReleaseRequest(
-            null, null, null, null, null, null, null, "not-numeric", null));
+            null, null, null, null, null, null, "not-numeric", null));
 
         Assert.True(result.IsFailure);
         Assert.Equal("invalid_facebook_pixel_id", result.Error);
@@ -154,10 +210,52 @@ public class ReleaseManagerTests
         var created = await releaseManager.CreateAsync(ValidRequest());
 
         var result = await releaseManager.UpdateAsync(created.Value.Id, new UpdateReleaseRequest(
-            null, null, "Updated headline", null, null, null, null, null, null));
+            null, null, "Updated headline", null, null, null, null, null));
 
         Assert.True(result.IsSuccess);
         Assert.Equal("123456789012345", result.Value.FacebookPixelId);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldKeepExistingCoverImage_WhenNoFileProvided()
+    {
+        var created = await releaseManager.CreateAsync(ValidRequest());
+        var originalCoverImageUrl = created.Value.CoverImageUrl;
+
+        var result = await releaseManager.UpdateAsync(created.Value.Id, new UpdateReleaseRequest(
+            null, null, "Updated headline", null, null, null, null, null));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(originalCoverImageUrl, result.Value.CoverImageUrl);
+        Assert.Single(imageStorage.SavedImages); // only the create-time save, no re-save on update
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldOverwriteCoverImage_WhenFileProvided_EvenAfterSlugChangedViaTitleUpdate()
+    {
+        var created = await releaseManager.CreateAsync(ValidRequest());
+
+        await releaseManager.UpdateAsync(created.Value.Id, new UpdateReleaseRequest(
+            null, "A New Title", null, null, null, null, null, null));
+
+        var result = await releaseManager.UpdateAsync(created.Value.Id, new UpdateReleaseRequest(
+            null, null, null, null, new UploadedFile("image/png", [9, 9, 9]), null, null, null));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, imageStorage.SavedImages.Count);
+        Assert.All(imageStorage.SavedImages, saved => Assert.Equal($"{GeneratedId}/cover.webp", saved.Key));
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldFail_WhenCoverImageContentTypeIsNotAllowed()
+    {
+        var created = await releaseManager.CreateAsync(ValidRequest());
+
+        var result = await releaseManager.UpdateAsync(created.Value.Id, new UpdateReleaseRequest(
+            null, null, null, null, new UploadedFile("application/pdf", [1, 2, 3]), null, null, null));
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("invalid_cover_image_type", result.Error);
     }
 
     [Fact]
@@ -165,10 +263,7 @@ public class ReleaseManagerTests
     {
         await releaseManager.CreateAsync(ValidRequest());
 
-        var otherTenantManager = new ReleaseManager(
-            NullLogger<ReleaseManager>.Instance, repository, publisher, new StaticSlugGenerator(),
-            new StaticIdGenerator(Guid.NewGuid()), new StaticClock(), new StaticCurrentUserProvider("user-2"),
-            new StaticPublicSiteSettings());
+        var otherTenantManager = NewManagerFor("user-2", Guid.NewGuid());
         await otherTenantManager.CreateAsync(ValidRequest("Other Song"));
 
         var result = await releaseManager.ListAsync();
@@ -183,10 +278,7 @@ public class ReleaseManagerTests
     {
         var created = await releaseManager.CreateAsync(ValidRequest());
 
-        var otherTenantManager = new ReleaseManager(
-            NullLogger<ReleaseManager>.Instance, repository, publisher, new StaticSlugGenerator(),
-            new StaticIdGenerator(Guid.NewGuid()), new StaticClock(), new StaticCurrentUserProvider("user-2"),
-            new StaticPublicSiteSettings());
+        var otherTenantManager = NewManagerFor("user-2", Guid.NewGuid());
 
         var result = await otherTenantManager.GetAsync(created.Value.Id);
 

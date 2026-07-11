@@ -39,6 +39,10 @@ public static class ServiceRegistration
         var publicHostname = configuration["Publishing:PublicHostname"];
         services.AddScoped<IPublicSiteSettings>(_ => new PublicSiteSettings(publicHostname));
 
+        services.AddScoped<IImageProcessor, ImageSharpImageProcessor>();
+        services.AddScoped<IImageStorage>(sp =>
+            new MinioImageStorage(sp.GetRequiredService<IAmazonS3>(), minioBucket, publicHostname!));
+
         // Null Object pattern: Meta requires real credentials that aren't available in every
         // environment (dev/test), so the flag is read once here at the composition root.
         var metaConversionsEnabled = configuration.GetValue<bool>("Features:MetaConversions:Enabled");

@@ -1,12 +1,13 @@
+using Microsoft.AspNetCore.Http;
+
 namespace FanFlow.Api.Models;
 
-public record CreateReleaseRequestModel(
+public record CreateReleaseFormModel(
     string ArtistName,
     string Title,
     string Headline,
     string Description,
-    string CoverImageUrl,
-    string BackgroundImageUrl,
+    IFormFile? CoverImage,
     string CtaText,
     string FacebookPixelId,
-    IReadOnlyList<DestinationLinkModel> Links);
+    string LinksJson);

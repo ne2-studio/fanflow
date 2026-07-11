@@ -37,7 +37,6 @@ export class Release {
   headline: string;
   description: string;
   coverImageUrl: string;
-  backgroundImageUrl: string;
   ctaText: string;
   facebookPixelId: string;
   links: DestinationLink[];
@@ -53,7 +52,6 @@ export class Release {
     headline: string;
     description: string;
     coverImageUrl: string;
-    backgroundImageUrl: string;
     ctaText: string;
     facebookPixelId: string;
     links: DestinationLink[];
@@ -68,7 +66,6 @@ export class Release {
     this.headline = data.headline;
     this.description = data.description;
     this.coverImageUrl = data.coverImageUrl;
-    this.backgroundImageUrl = data.backgroundImageUrl;
     this.ctaText = data.ctaText;
     this.facebookPixelId = data.facebookPixelId;
     this.links = data.links.map(l => (l instanceof DestinationLink ? l : new DestinationLink(l)));

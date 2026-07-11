@@ -7,8 +7,7 @@ interface ReleaseInput {
   title: string;
   headline: string;
   description: string;
-  coverImageUrl: string;
-  backgroundImageUrl: string;
+  coverImage: File | null;
   ctaText: string;
   facebookPixelId: string;
   links: { platform: string; url: string }[];

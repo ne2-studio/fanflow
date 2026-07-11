@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using FanFlow.Api.Models;
 using FanFlow.Ports.Input;
@@ -11,18 +13,18 @@ namespace FanFlow.Api.Controllers;
 public class ReleasesController(IReleaseManager releaseManager, IReleaseAnalytics releaseAnalytics) : ControllerBase
 {
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateReleaseRequestModel request)
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> Create([FromForm] CreateReleaseFormModel request)
     {
         var result = await releaseManager.CreateAsync(new CreateReleaseRequest(
             request.ArtistName,
             request.Title,
             request.Headline,
             request.Description,
-            request.CoverImageUrl,
-            request.BackgroundImageUrl,
+            await ToUploadedFileAsync(request.CoverImage),
             request.CtaText,
             request.FacebookPixelId,
-            ToLinkDtos(request.Links)));
+            ToLinkDtos(DeserializeLinks(request.LinksJson))));
 
         if (!result.IsSuccess)
             return BadRequest(new { error = result.Error });
@@ -31,18 +33,20 @@ public class ReleasesController(IReleaseManager releaseManager, IReleaseAnalytic
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(string id, [FromBody] UpdateReleaseRequestModel request)
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> Update(string id, [FromForm] UpdateReleaseFormModel request)
     {
+        var links = request.LinksJson == null ? null : DeserializeLinks(request.LinksJson);
+
         var result = await releaseManager.UpdateAsync(id, new UpdateReleaseRequest(
             request.ArtistName,
             request.Title,
             request.Headline,
             request.Description,
-            request.CoverImageUrl,
-            request.BackgroundImageUrl,
+            await ToUploadedFileAsync(request.CoverImage),
             request.CtaText,
             request.FacebookPixelId,
-            request.Links == null ? null : ToLinkDtos(request.Links)));
+            links == null ? null : ToLinkDtos(links)));
 
         if (!result.IsSuccess)
             return MapFailure(result.Error);
@@ -100,6 +104,21 @@ public class ReleasesController(IReleaseManager releaseManager, IReleaseAnalytic
 
     private static IReadOnlyList<DestinationLinkDto> ToLinkDtos(IReadOnlyList<DestinationLinkModel> links) =>
         links.Select(l => new DestinationLinkDto(l.Platform, l.Url)).ToList();
+
+    private static readonly JsonSerializerOptions LinksJsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    private static IReadOnlyList<DestinationLinkModel> DeserializeLinks(string linksJson) =>
+        JsonSerializer.Deserialize<List<DestinationLinkModel>>(linksJson, LinksJsonOptions) ?? [];
+
+    private static async Task<UploadedFile?> ToUploadedFileAsync(IFormFile? file)
+    {
+        if (file == null || file.Length == 0)
+            return null;
+
+        using var stream = new MemoryStream();
+        await file.CopyToAsync(stream);
+        return new UploadedFile(file.ContentType, stream.ToArray());
+    }
 
     private IActionResult MapFailure(string error) =>
         error == "release_not_found" ? NotFound(new { error }) : BadRequest(new { error });

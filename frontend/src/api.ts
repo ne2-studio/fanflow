@@ -13,6 +13,34 @@ const getHeaders = (): Record<string, string> => ({
   'Authorization': `Bearer ${_accessToken}`,
 });
 
+// No Content-Type here: the browser sets the multipart boundary itself when the body is FormData.
+const getAuthHeaders = (): Record<string, string> => ({
+  'Authorization': `Bearer ${_accessToken}`,
+});
+
+const toReleaseFormData = (release: {
+  artistName?: string;
+  title?: string;
+  headline?: string;
+  description?: string;
+  coverImage?: File | null;
+  ctaText?: string;
+  facebookPixelId?: string;
+  links?: { platform: string; url: string }[];
+}): FormData => {
+  const formData = new FormData();
+  if (release.artistName !== undefined) formData.append('artistName', release.artistName);
+  if (release.title !== undefined) formData.append('title', release.title);
+  if (release.headline !== undefined) formData.append('headline', release.headline);
+  if (release.description !== undefined) formData.append('description', release.description);
+  if (release.ctaText !== undefined) formData.append('ctaText', release.ctaText);
+  if (release.facebookPixelId !== undefined) formData.append('facebookPixelId', release.facebookPixelId);
+  if (release.links !== undefined) formData.append('linksJson', JSON.stringify(release.links));
+  // Omitting the field entirely (not sending an empty file) is what keeps the existing cover image.
+  if (release.coverImage) formData.append('coverImage', release.coverImage);
+  return formData;
+};
+
 const handleResponse = async (res: Response) => {
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: 'Unknown error' }));
@@ -33,32 +61,30 @@ export const api = {
       title: string;
       headline: string;
       description: string;
-      coverImageUrl: string;
-      backgroundImageUrl: string;
+      coverImage: File | null;
       ctaText: string;
       facebookPixelId: string;
       links: { platform: string; url: string }[];
     }): Promise<Release> =>
       fetch(`${API_BASE_URL}/api/releases`, {
         method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(release),
+        headers: getAuthHeaders(),
+        body: toReleaseFormData(release),
       }).then(handleResponse).then(data => new Release(data)),
     update: async (id: string, release: Partial<{
       artistName: string;
       title: string;
       headline: string;
       description: string;
-      coverImageUrl: string;
-      backgroundImageUrl: string;
+      coverImage: File | null;
       ctaText: string;
       facebookPixelId: string;
       links: { platform: string; url: string }[];
     }>): Promise<Release> =>
       fetch(`${API_BASE_URL}/api/releases/${id}`, {
         method: 'PUT',
-        headers: getHeaders(),
-        body: JSON.stringify(release),
+        headers: getAuthHeaders(),
+        body: toReleaseFormData(release),
       }).then(handleResponse).then(data => new Release(data)),
     delete: async (id: string): Promise<void> =>
       fetch(`${API_BASE_URL}/api/releases/${id}`, {

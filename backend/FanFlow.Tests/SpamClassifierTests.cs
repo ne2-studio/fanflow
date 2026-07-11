@@ -26,7 +26,7 @@ public class SpamClassifierTests
 
         releaseRepository.SaveAsync(new Release(
             releaseId, "user-1", "run-to-me", "The Artist", "Run To Me", "New single out now", "A great song.",
-            "https://img/cover.jpg", "https://img/bg.jpg", "Listen now", PixelId,
+            "https://img/cover.jpg", "Listen now", PixelId,
             [new DestinationLink("Spotify", "https://open.spotify.com/track/123")],
             ReleaseStatus.Published, clock.UtcNow(), clock.UtcNow())).GetAwaiter().GetResult();
     }

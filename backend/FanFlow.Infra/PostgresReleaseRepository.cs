@@ -13,10 +13,10 @@ public class PostgresReleaseRepository(string connectionString) : IReleaseReposi
         var sql = @"
             INSERT INTO ""Releases""
                 (""Id"", ""TenantId"", ""Slug"", ""ArtistName"", ""Title"", ""Headline"", ""Description"", ""CoverImageUrl"",
-                 ""BackgroundImageUrl"", ""CtaText"", ""FacebookPixelId"", ""LinksJson"", ""Status"", ""CreatedAt"", ""UpdatedAt"")
+                 ""CtaText"", ""FacebookPixelId"", ""LinksJson"", ""Status"", ""CreatedAt"", ""UpdatedAt"")
             VALUES
                 (@Id, @TenantId, @Slug, @ArtistName, @Title, @Headline, @Description, @CoverImageUrl,
-                 @BackgroundImageUrl, @CtaText, @FacebookPixelId, @LinksJson, @Status, @CreatedAt, @UpdatedAt)
+                 @CtaText, @FacebookPixelId, @LinksJson, @Status, @CreatedAt, @UpdatedAt)
             ON CONFLICT (""Id"") DO UPDATE SET
                 ""Slug"" = EXCLUDED.""Slug"",
                 ""ArtistName"" = EXCLUDED.""ArtistName"",
@@ -24,7 +24,6 @@ public class PostgresReleaseRepository(string connectionString) : IReleaseReposi
                 ""Headline"" = EXCLUDED.""Headline"",
                 ""Description"" = EXCLUDED.""Description"",
                 ""CoverImageUrl"" = EXCLUDED.""CoverImageUrl"",
-                ""BackgroundImageUrl"" = EXCLUDED.""BackgroundImageUrl"",
                 ""CtaText"" = EXCLUDED.""CtaText"",
                 ""FacebookPixelId"" = EXCLUDED.""FacebookPixelId"",
                 ""LinksJson"" = EXCLUDED.""LinksJson"",
@@ -95,7 +94,6 @@ public class PostgresReleaseRepository(string connectionString) : IReleaseReposi
         release.Headline,
         release.Description,
         release.CoverImageUrl,
-        release.BackgroundImageUrl,
         release.CtaText,
         release.FacebookPixelId,
         LinksJson = JsonSerializer.Serialize(release.Links),
@@ -113,7 +111,6 @@ public class PostgresReleaseRepository(string connectionString) : IReleaseReposi
         row.Headline,
         row.Description,
         row.CoverImageUrl,
-        row.BackgroundImageUrl,
         row.CtaText,
         row.FacebookPixelId,
         JsonSerializer.Deserialize<List<DestinationLink>>(row.LinksJson) ?? [],
@@ -131,7 +128,6 @@ public class PostgresReleaseRepository(string connectionString) : IReleaseReposi
         public string Headline { get; set; } = "";
         public string Description { get; set; } = "";
         public string CoverImageUrl { get; set; } = "";
-        public string BackgroundImageUrl { get; set; } = "";
         public string CtaText { get; set; } = "";
         public string FacebookPixelId { get; set; } = "";
         public string LinksJson { get; set; } = "[]";

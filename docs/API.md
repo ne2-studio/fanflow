@@ -13,40 +13,46 @@ The `/pv/*`, `/out/*`, `/trap/*` tracking routes are public, unauthenticated, an
 ### `POST /api/releases`
 
 Create a release and its landing page (CreateRelease). Only Spotify links are supported in MVP.
+Request body is `multipart/form-data` (not JSON), since the cover image is an uploaded file:
 
-Request body:
-
-```json
-{
-  "title": "Run To Me",
-  "headline": "New single out now",
-  "description": "A great song.",
-  "coverImageUrl": "https://.../cover.jpg",
-  "backgroundImageUrl": "https://.../bg.jpg",
-  "ctaText": "Listen Now",
-  "facebookPixelId": "123456789012345",
-  "links": [{ "platform": "Spotify", "url": "https://open.spotify.com/track/..." }]
-}
-```
+| Field            | Type                        | Notes                                              |
+|------------------|-----------------------------|-----------------------------------------------------|
+| `artistName`     | string                      |                                                     |
+| `title`          | string                      |                                                     |
+| `headline`       | string                      |                                                     |
+| `description`    | string                      |                                                     |
+| `coverImage`     | file (binary)               | required; JPEG/PNG/WebP; max 10 MB                 |
+| `ctaText`        | string                      |                                                     |
+| `facebookPixelId`| string                      | numeric, required                                  |
+| `linksJson`      | string (JSON-encoded array) | e.g. `[{"platform":"Spotify","url":"https://open.spotify.com/track/..."}]` |
 
 `facebookPixelId` is required — FanFlow always forwards conversions to Meta CAPI and embeds the
 Meta Pixel on the landing page, so every release must carry one (numeric string).
 
-Response `200 OK`: the created release (id, slug, url, authored fields including `facebookPixelId`,
-status, createdAt).
+`coverImage` is required and is processed server-side into a 420x420 square (center-cropped, not
+stretched) WebP image before storage; there is no separate background image field — the landing
+page background is a blurred/expanded rendering of the cover image.
+
+Response `200 OK`: the created release (id, slug, url, authored fields including `coverImageUrl`
+and `facebookPixelId`, status, createdAt).
 
 `400 Bad Request` — `{ "error": "invalid_destination" }` (non-Spotify link), `{ "error":
-"invalid_facebook_pixel_id" }` (missing or non-numeric), or `{ "error": "slug_taken" }`.
+"invalid_facebook_pixel_id" }` (missing or non-numeric), `{ "error": "cover_image_required" }`,
+`{ "error": "invalid_cover_image_type" }`, `{ "error": "cover_image_too_large" }`, or
+`{ "error": "slug_taken" }`.
 
 ### `PUT /api/releases/{id}`
 
 Update any subset of a release's authored fields, including `facebookPixelId` (UpdateRelease).
-Re-triggers landing page regeneration and republish. Omitting `facebookPixelId` keeps the
-existing value — it can never be cleared, only replaced with another valid numeric id.
+Also `multipart/form-data`; every field is optional. Re-triggers landing page regeneration and
+republish. Omitting `facebookPixelId` keeps the existing value — it can never be cleared, only
+replaced with another valid numeric id. Omitting `coverImage` keeps the existing cover image;
+including it uploads and overwrites the stored cover image.
 
 `404 Not Found` — `{ "error": "release_not_found" }`.
 `400 Bad Request` — `{ "error": "invalid_destination" }`, `{ "error": "invalid_facebook_pixel_id" }`,
-or `{ "error": "slug_taken" }`.
+`{ "error": "invalid_cover_image_type" }`, `{ "error": "cover_image_too_large" }`, or
+`{ "error": "slug_taken" }`.
 
 ### `GET /api/releases`
 

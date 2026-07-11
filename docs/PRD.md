@@ -187,8 +187,7 @@ Fields:
 Title
 Headline
 Description
-Cover image
-Background image
+Cover image (uploaded file, server-processed into a 420x420 square-cropped WebP)
 CTA text
 Links
 ```
@@ -200,6 +199,10 @@ Spotify
 ```
 
 More destinations will be supported in the future (not now).
+
+There is no separate background image field. The landing page background is a blurred, scaled-up
+copy of the cover image, rendered as a CSS effect at publish time — not a second uploaded/stored
+asset.
 
 ---
 
@@ -397,6 +400,11 @@ MinIO bucket via the S3 API. A thin Nginx container (deployed independently, its
 public requests straight through to MinIO; the backend's `Publishing:PublicHostname` config is the
 internet-facing hostname of that Nginx container, and is what the release URL shown to authors is
 built from.
+
+Uploaded cover images are processed (center-cropped to a square, resized to 420x420, encoded as
+WebP) and stored as objects in the same MinIO bucket, keyed by `{releaseId}/cover.webp` — reusing
+the same public-read bucket and Nginx passthrough as the generated HTML, so no separate asset
+bucket or Nginx route is needed. Uploading a new cover image overwrites the object at that key.
 
 ---
 

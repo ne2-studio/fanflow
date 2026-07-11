@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Trash2, Pencil, BarChart3, ExternalLink } from 'lucide-react';
 import { useReleaseStore } from '../store/useReleaseStore';
@@ -10,8 +10,8 @@ interface ReleaseFormState {
   title: string;
   headline: string;
   description: string;
-  coverImageUrl: string;
-  backgroundImageUrl: string;
+  coverImageFile: File | null;
+  existingCoverImageUrl: string;
   ctaText: string;
   spotifyUrl: string;
   facebookPixelId: string;
@@ -22,8 +22,8 @@ const emptyForm: ReleaseFormState = {
   title: '',
   headline: '',
   description: '',
-  coverImageUrl: '',
-  backgroundImageUrl: '',
+  coverImageFile: null,
+  existingCoverImageUrl: '',
   ctaText: 'Listen Now',
   spotifyUrl: '',
   facebookPixelId: '',
@@ -41,9 +41,24 @@ function ReleaseFormModal({
   const [form, setForm] = useState<ReleaseFormState>(initial);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState(initial.existingCoverImageUrl);
 
   const set = (field: keyof ReleaseFormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
+
+  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((f) => ({ ...f, coverImageFile: e.target.files?.[0] ?? null }));
+  };
+
+  useEffect(() => {
+    if (!form.coverImageFile) {
+      setCoverPreviewUrl(form.existingCoverImageUrl);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(form.coverImageFile);
+    setCoverPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [form.coverImageFile, form.existingCoverImageUrl]);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -80,12 +95,11 @@ function ReleaseFormModal({
           <textarea className="p-2 text-sm rounded-sm" rows={3} value={form.description} onChange={set('description')} />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-text-secondary">Cover image URL</label>
-          <input className="p-2 text-sm rounded-sm" value={form.coverImageUrl} onChange={set('coverImageUrl')} />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-text-secondary">Background image URL</label>
-          <input className="p-2 text-sm rounded-sm" value={form.backgroundImageUrl} onChange={set('backgroundImageUrl')} />
+          <label className="text-xs text-text-secondary">Cover image</label>
+          <input type="file" accept="image/*" className="text-sm rounded-sm" onChange={handleCoverImageChange} />
+          {coverPreviewUrl && (
+            <img src={coverPreviewUrl} alt="Cover preview" className="w-24 h-24 object-cover rounded-sm mt-1" />
+          )}
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs text-text-secondary">CTA text</label>
@@ -108,7 +122,14 @@ function ReleaseFormModal({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={submitting || !form.artistName || !form.title || !form.spotifyUrl || !form.facebookPixelId}
+            disabled={
+              submitting ||
+              !form.artistName ||
+              !form.title ||
+              !form.spotifyUrl ||
+              !form.facebookPixelId ||
+              (!form.coverImageFile && !form.existingCoverImageUrl)
+            }
             className="bg-primary text-white px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-sm hover:bg-primary/90 transition-all disabled:opacity-50"
           >
             {submitting ? 'Saving...' : 'Save'}
@@ -131,8 +152,7 @@ export function Releases() {
     title: form.title,
     headline: form.headline,
     description: form.description,
-    coverImageUrl: form.coverImageUrl,
-    backgroundImageUrl: form.backgroundImageUrl,
+    coverImage: form.coverImageFile,
     ctaText: form.ctaText,
     facebookPixelId: form.facebookPixelId.trim(),
     links: [{ platform: 'Spotify', url: form.spotifyUrl }],
@@ -147,8 +167,8 @@ export function Releases() {
         title: release.title,
         headline: release.headline,
         description: release.description,
-        coverImageUrl: release.coverImageUrl,
-        backgroundImageUrl: release.backgroundImageUrl,
+        coverImageFile: null,
+        existingCoverImageUrl: release.coverImageUrl,
         ctaText: release.ctaText,
         spotifyUrl: release.links.find(l => l.platform.toLowerCase() === 'spotify')?.url ?? '',
         facebookPixelId: release.facebookPixelId,

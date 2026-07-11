@@ -86,8 +86,15 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName) :
               <meta property="og:description" content="{{Html(release.Description)}}" />
               <meta property="og:image" content="{{Html(release.CoverImageUrl)}}" />
               <style>
-                body { margin: 0; font-family: system-ui, sans-serif; color: #fff; background: #000 url('{{Html(release.BackgroundImageUrl)}}') center/cover no-repeat; }
-                .wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; background: rgba(0,0,0,0.45); }
+                body { margin: 0; font-family: system-ui, sans-serif; color: #fff; background: #000; overflow-x: hidden; }
+                .backdrop {
+                  position: fixed; inset: -40px;
+                  background: url('{{Html(release.CoverImageUrl)}}') center/cover no-repeat;
+                  filter: blur(40px) brightness(0.55);
+                  transform: scale(1.15);
+                  z-index: -1;
+                }
+                .wrap { position: relative; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; background: rgba(0,0,0,0.45); }
                 img.cover { width: 220px; height: 220px; object-fit: cover; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
                 h1 { margin: 0.25rem 0 0.25rem; font-size: 1.5rem; }
                 p.artist { margin: 1.5rem 0 0; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.75; }
@@ -97,6 +104,7 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName) :
               </style>
             </head>
             <body>
+              <div class="backdrop"></div>
               <img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id={{Html(release.FacebookPixelId)}}&amp;ev=PageView&amp;noscript=1" />
               <div class="wrap">
                 <img class="cover" src="{{Html(release.CoverImageUrl)}}" alt="{{Html(release.ArtistName)}} - {{Html(release.Title)}}" />

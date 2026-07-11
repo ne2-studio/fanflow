@@ -23,7 +23,7 @@ public class ReleaseAnalyticsTests
             NullLogger<ReleaseAnalytics>.Instance, releaseRepository, eventRepository, new StaticCurrentUserProvider(TenantId));
 
         release = new Release(
-            Guid.NewGuid(), TenantId, "run-to-me", "The Artist", "Run To Me", "headline", "desc", "cover", "bg", "Listen", "123456789012345",
+            Guid.NewGuid(), TenantId, "run-to-me", "The Artist", "Run To Me", "headline", "desc", "cover", "Listen", "123456789012345",
             [new DestinationLink("Spotify", "https://open.spotify.com/x")], ReleaseStatus.Published, DateTime.UtcNow, DateTime.UtcNow);
         releaseRepository.SaveAsync(release).Wait();
     }

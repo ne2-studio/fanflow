@@ -10,7 +10,6 @@ public record ReleaseDto
     string Headline,
     string Description,
     string CoverImageUrl,
-    string BackgroundImageUrl,
     string CtaText,
     string FacebookPixelId,
     IReadOnlyList<DestinationLinkDto> Links,
