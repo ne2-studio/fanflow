@@ -22,7 +22,7 @@ public class SpamClassifierTests
         releaseRepository = new InMemoryReleaseRepository();
         conversionsApiClient = new SpyConversionsApiClient();
         clock = new StaticClock();
-        spamClassifier = new SpamClassifier(NullLogger<SpamClassifier>.Instance, eventRepository, releaseRepository, conversionsApiClient, clock);
+        spamClassifier = new SpamClassifier(NullLogger<SpamClassifier>.Instance, eventRepository, releaseRepository, conversionsApiClient, clock, new StaticSlugGenerator());
 
         releaseRepository.SaveAsync(new Release(
             releaseId, "user-1", "run-to-me", "The Artist", "Run To Me", "New single out now", "A great song.",

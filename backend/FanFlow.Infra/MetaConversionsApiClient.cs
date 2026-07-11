@@ -25,6 +25,10 @@ public class MetaConversionsApiClient(HttpClient httpClient, string accessToken)
                     {
                         client_ip_address = conversionEvent.IpAddress,
                         client_user_agent = conversionEvent.UserAgent
+                    },
+                    custom_data = new
+                    {
+                        content_name = conversionEvent.ContentName
                     }
                 }
             }

@@ -32,7 +32,7 @@ public class StaticSiteReleasePublisherTests
     public async Task PublishAsync_ShouldPutRenderedHtml_UnderSlugKey()
     {
         var s3Client = Substitute.For<IAmazonS3>();
-        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName);
+        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName, new SlugGenerator());
 
         await publisher.PublishAsync(SampleRelease());
 
@@ -44,7 +44,8 @@ public class StaticSiteReleasePublisherTests
                 r.ContentBody.Contains("Run To Me") &&
                 r.ContentBody.Contains("The Artist") &&
                 r.ContentBody.Contains($"https://www.facebook.com/tr?id={PixelId}") &&
-                r.ContentBody.Contains("class=\"backdrop\"") &&
+                r.ContentBody.Contains("cd[content_name]=the-artist-run-to-me") &&
+                r.ContentBody.Contains("id=\"bg\"") &&
                 r.ContentBody.Contains("url('https://img/cover.jpg')") &&
                 !r.ContentBody.Contains("bg.jpg")),
             Arg.Any<CancellationToken>());
@@ -54,7 +55,7 @@ public class StaticSiteReleasePublisherTests
     public async Task PublishAsync_ShouldRenderSpotifyDeepLinkAttributes_ForSpotifyLink()
     {
         var s3Client = Substitute.For<IAmazonS3>();
-        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName);
+        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName, new SlugGenerator());
 
         await publisher.PublishAsync(SampleRelease());
 
@@ -69,7 +70,7 @@ public class StaticSiteReleasePublisherTests
     public async Task PublishAsync_ShouldOmitDeepLinkAttributes_WhenUrlShapeIsUnrecognized()
     {
         var s3Client = Substitute.For<IAmazonS3>();
-        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName);
+        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName, new SlugGenerator());
         var release = SampleRelease() with { Links = [new DestinationLink("Spotify", "https://open.spotify.com/")] };
 
         await publisher.PublishAsync(release);
@@ -82,10 +83,54 @@ public class StaticSiteReleasePublisherTests
     }
 
     [Fact]
+    public async Task PublishAsync_ShouldPlaceHoneypotLink_AsFirstElementInBody_BeforeAnyOtherAnchor()
+    {
+        var s3Client = Substitute.For<IAmazonS3>();
+        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName, new SlugGenerator());
+
+        await publisher.PublishAsync(SampleRelease());
+
+        await s3Client.Received(1).PutObjectAsync(
+            Arg.Is<PutObjectRequest>(r =>
+                IsFirstElementInBody(r.ContentBody, "href=\"/trap/") &&
+                r.ContentBody.IndexOf("href=\"/trap/", StringComparison.Ordinal) <
+                    r.ContentBody.IndexOf("class=\"cta\"", StringComparison.Ordinal)),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task PublishAsync_ShouldMakeCoverArt_ClickableToThePrimaryDestination()
+    {
+        var s3Client = Substitute.For<IAmazonS3>();
+        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName, new SlugGenerator());
+
+        await publisher.PublishAsync(SampleRelease());
+
+        await s3Client.Received(1).PutObjectAsync(
+            Arg.Is<PutObjectRequest>(r =>
+                r.ContentBody.Contains("<a id=\"a\"") &&
+                r.ContentBody.Contains("href=\"https://open.spotify.com/track/123\" class=\"cta\"")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task PublishAsync_ShouldIncludeSpotifyLogo_ForSpotifyDestination()
+    {
+        var s3Client = Substitute.For<IAmazonS3>();
+        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName, new SlugGenerator());
+
+        await publisher.PublishAsync(SampleRelease());
+
+        await s3Client.Received(1).PutObjectAsync(
+            Arg.Is<PutObjectRequest>(r => r.ContentBody.Contains("<svg viewBox=\"0 0 496 512\"")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task UnpublishAsync_ShouldDeleteObject_ForSlugKey()
     {
         var s3Client = Substitute.For<IAmazonS3>();
-        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName);
+        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName, new SlugGenerator());
 
         await publisher.UnpublishAsync("run-to-me");
 
@@ -119,5 +164,16 @@ public class StaticSiteReleasePublisherTests
         await StaticSiteReleasePublisher.EnsureBucketAsync(s3Client, BucketName);
 
         await s3Client.Received(1).PutBucketPolicyAsync(BucketName, Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// True when the first tag opened after &lt;body&gt; is the one containing <paramref name="marker"/>
+    /// (used to assert the honeypot link is the very first element, ahead of any real content).
+    /// </summary>
+    private static bool IsFirstElementInBody(string html, string marker)
+    {
+        var bodyOpenEnd = html.IndexOf('>', html.IndexOf("<body", StringComparison.Ordinal)) + 1;
+        var firstTagStart = html.IndexOf('<', bodyOpenEnd);
+        return html.IndexOf(marker, firstTagStart, StringComparison.Ordinal) - firstTagStart < 80;
     }
 }

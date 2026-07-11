@@ -10,7 +10,8 @@ public class SpamClassifier(
     IEventRepository eventRepository,
     IReleaseRepository releaseRepository,
     IConversionsApiClient conversionsApiClient,
-    IClock clock) : ISpamClassifier
+    IClock clock,
+    ISlugGenerator slugGenerator) : ISpamClassifier
 {
     public Task<Result> AnalyzePageViewAsync(string pageViewId) => AnalyzeAsync(pageViewId, EventType.PageView);
 
@@ -68,7 +69,8 @@ public class SpamClassifier(
             release.FacebookPixelId,
             trackedEvent.IpAddress,
             trackedEvent.UserAgent,
-            trackedEvent.CreatedAt);
+            trackedEvent.CreatedAt,
+            slugGenerator.Generate($"{release.ArtistName} {release.Title}"));
 
         var result = await conversionsApiClient.SendConversionEventAsync(conversionEvent);
         if (result.IsFailure)

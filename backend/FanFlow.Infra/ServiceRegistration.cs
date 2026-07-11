@@ -34,7 +34,7 @@ public static class ServiceRegistration
                 ForcePathStyle = true
             }));
         services.AddScoped<IReleasePublisher>(sp =>
-            new StaticSiteReleasePublisher(sp.GetRequiredService<IAmazonS3>(), minioBucket));
+            new StaticSiteReleasePublisher(sp.GetRequiredService<IAmazonS3>(), minioBucket, sp.GetRequiredService<ISlugGenerator>()));
 
         var publicHostname = configuration["Publishing:PublicHostname"];
         services.AddScoped<IPublicSiteSettings>(_ => new PublicSiteSettings(publicHostname));

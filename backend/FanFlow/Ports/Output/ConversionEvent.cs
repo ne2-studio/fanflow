@@ -10,5 +10,6 @@ public record ConversionEvent
     string PixelId,
     string IpAddress,
     string UserAgent,
-    DateTime OccurredAt
+    DateTime OccurredAt,
+    string ContentName
 );
