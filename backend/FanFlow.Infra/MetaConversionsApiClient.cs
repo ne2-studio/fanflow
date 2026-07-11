@@ -32,7 +32,7 @@ public class MetaConversionsApiClient(HttpClient httpClient, string accessToken,
             : new { data = eventData, test_event_code = testEventCode };
 
         var response = await httpClient.PostAsJsonAsync(
-            $"https://graph.facebook.com/v18.0/{conversionEvent.PixelId}/events?access_token={accessToken}", payload);
+            $"https://graph.facebook.com/v25.0/{conversionEvent.PixelId}/events?access_token={accessToken}", payload);
 
         return response.IsSuccessStatusCode
             ? Result.Success()
