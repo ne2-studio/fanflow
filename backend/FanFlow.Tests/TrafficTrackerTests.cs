@@ -50,13 +50,12 @@ public class TrafficTrackerTests
     }
 
     [Fact]
-    public async Task TrackDestinationClickAsync_ShouldRecordEventAndReturnRedirectUrl()
+    public async Task TrackDestinationClickAsync_ShouldRecordEvent()
     {
         var result = await trafficTracker.TrackDestinationClickAsync(new TrackDestinationClickRequest(
             "run-to-me", "spotify", "1.2.3.4", "Mozilla/5.0", "https://instagram.com", 3200, "US"));
 
         Assert.True(result.IsSuccess);
-        Assert.Equal("https://open.spotify.com/track/123", result.Value.Url);
 
         var stored = await eventRepository.LoadByIdAsync(GeneratedId);
         Assert.Equal(EventType.DestinationClick, stored!.Type);

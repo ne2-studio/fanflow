@@ -15,14 +15,15 @@ public interface ITrafficTracker
     Task<Result> TrackPageViewAsync(TrackPageViewRequest request);
 
     /// <summary>
-    /// Records the click and returns the destination to redirect to. The redirect always happens
-    /// regardless of spam classification, which runs asynchronously afterward.
+    /// Records the click. The landing page performs the redirect itself, client-side (native app
+    /// deep-link attempt with a web fallback) — this only needs to record the event, regardless of
+    /// spam classification, which runs asynchronously afterward.
     /// </summary>
     /// <returns>
-    /// The destination URL to redirect to, or a failure: "release_not_found" (idempotent) or
+    /// A result indicating success, or a failure: "release_not_found" (idempotent) or
     /// "destination_not_found" (idempotent).
     /// </returns>
-    Task<Result<DestinationRedirectDto>> TrackDestinationClickAsync(TrackDestinationClickRequest request);
+    Task<Result> TrackDestinationClickAsync(TrackDestinationClickRequest request);
 
     /// <summary>
     /// Records a hit on an invisible honeypot link; the event is classified Bot immediately,

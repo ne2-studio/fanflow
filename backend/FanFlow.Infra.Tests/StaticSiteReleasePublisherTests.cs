@@ -51,6 +51,37 @@ public class StaticSiteReleasePublisherTests
     }
 
     [Fact]
+    public async Task PublishAsync_ShouldRenderSpotifyDeepLinkAttributes_ForSpotifyLink()
+    {
+        var s3Client = Substitute.For<IAmazonS3>();
+        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName);
+
+        await publisher.PublishAsync(SampleRelease());
+
+        await s3Client.Received(1).PutObjectAsync(
+            Arg.Is<PutObjectRequest>(r =>
+                r.ContentBody.Contains("data-app-uri=\"spotify:track:123:play\"") &&
+                r.ContentBody.Contains("data-android-intent=\"intent://open.spotify.com/track/123:play#Intent;scheme=https;package=com.spotify.music;end\"")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task PublishAsync_ShouldOmitDeepLinkAttributes_WhenUrlShapeIsUnrecognized()
+    {
+        var s3Client = Substitute.For<IAmazonS3>();
+        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName);
+        var release = SampleRelease() with { Links = [new DestinationLink("Spotify", "https://open.spotify.com/")] };
+
+        await publisher.PublishAsync(release);
+
+        await s3Client.Received(1).PutObjectAsync(
+            Arg.Is<PutObjectRequest>(r =>
+                !r.ContentBody.Contains("data-app-uri=\"") &&
+                !r.ContentBody.Contains("data-android-intent=\"")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task UnpublishAsync_ShouldDeleteObject_ForSlugKey()
     {
         var s3Client = Substitute.For<IAmazonS3>();

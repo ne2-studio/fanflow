@@ -111,8 +111,10 @@ Records a landing-page view (TrackPageView), unclassified. Response `204 No Cont
 
 ### `GET /out/{slug}/{destinationId}?dwell=<ms>`
 
-Records a destination click (TrackDestinationClick) and redirects to the destination URL
-(`302 Found`) regardless of spam classification, which runs asynchronously afterward.
+Records a destination click (TrackDestinationClick). Response `204 No Content` — it does not
+redirect; the landing page performs the redirect itself, client-side (native app deep-link
+attempt with a web fallback), firing this request in parallel rather than waiting on it.
+Recording happens regardless of spam classification, which runs asynchronously afterward.
 `destinationId` is the link's platform (e.g. `spotify`). `dwell` is the time in ms since the
 page view, measured client-side. `404 Not Found` if the release or destination doesn't exist.
 

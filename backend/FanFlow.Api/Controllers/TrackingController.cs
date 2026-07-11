@@ -7,7 +7,9 @@ namespace FanFlow.Api.Controllers;
 /// <summary>
 /// Public, unauthenticated surface hit by the static landing pages (see PRD section 9:
 /// tracking routes /pv/*, /out/*, /trap/* proxied to the backend). Rate-limited per the
-/// architecture convention for public endpoints.
+/// architecture convention for public endpoints. /out/* only records the click — the landing
+/// page performs the actual redirect itself, client-side, so it can attempt a native app
+/// deep-link before falling back to the web URL.
 /// </summary>
 [ApiController]
 [EnableRateLimiting("PublicLimiter")]
@@ -28,10 +30,7 @@ public class TrackingController(ITrafficTracker trafficTracker) : ControllerBase
         var result = await trafficTracker.TrackDestinationClickAsync(new TrackDestinationClickRequest(
             slug, destinationId, ClientIp(), UserAgent(), Referrer(), dwell, Country()));
 
-        if (!result.IsSuccess)
-            return NotFound();
-
-        return Redirect(result.Value.Url);
+        return result.IsSuccess ? NoContent() : NotFound();
     }
 
     [HttpGet("trap/{slug}")]

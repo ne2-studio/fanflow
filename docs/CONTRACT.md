@@ -55,9 +55,9 @@ behavior — not a technical design.
 ## 8) TrackDestinationClick
 
 - **Input**: release slug, destination identifier (from `/out/*` request), IP address, user agent, referrer, timestamp, elapsed time since the page view (dwell time)
-- **Output (OK)**: HTTP redirect to the destination URL (e.g. Spotify)
+- **Output (OK)**: click recorded; no content returned — the redirect to the destination is performed client-side by the landing page itself (native app deep-link attempt with a web fallback), not by this endpoint
 - **Errors**: `release_not_found` (idempotent); `destination_not_found` (idempotent)
-- **Rules**: event is recorded, unclassified, before the redirect is issued; the redirect always happens regardless of classification, since classification runs asynchronously afterward — no bot scoring is done synchronously
+- **Rules**: event is recorded regardless of classification, since classification runs asynchronously afterward — no bot scoring is done synchronously; because the redirect is client-side and fired independently of this call (so a successful native-app open isn't blocked waiting on it), a click that opens the destination app is not guaranteed to be recorded server-side if the request is lost (e.g. tab backgrounded before the request completes) — a known, accepted limitation of client-side deep-linking
 
 ## 9) AnalyzeDestinationClick (async)
 

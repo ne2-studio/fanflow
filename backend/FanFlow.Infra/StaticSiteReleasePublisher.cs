@@ -10,7 +10,9 @@ namespace FanFlow.Infra;
 /// Drives the static landing page pipeline (Database -> Static Generator -> HTML -> MinIO -> Nginx):
 /// renders one pregenerated, static HTML file per release into an S3-compatible object store (MinIO)
 /// that a thin Nginx container proxies to the public internet. The only JS on the page is a small
-/// inline tracking beacon (page-view ping, dwell-time-aware CTA link, invisible honeypot link) — no
+/// inline tracking beacon (page-view ping, dwell-time-aware CTA click ping, invisible honeypot link)
+/// plus the CTA redirect itself: a native-app deep-link attempt (Spotify URI scheme / Android intent,
+/// precomputed per link at render time by BuildDeepLinks) with a timed fallback to the web URL — no
 /// framework, no runtime rendering.
 /// </summary>
 public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName) : IReleasePublisher
@@ -71,8 +73,15 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName) :
         var destinationButtons = new StringBuilder();
         foreach (var link in release.Links)
         {
+            var (appUri, androidIntent) = BuildDeepLinks(link);
+            var deepLinkAttrs = new StringBuilder();
+            if (appUri != null)
+                deepLinkAttrs.Append($" data-app-uri=\"{Html(appUri)}\"");
+            if (androidIntent != null)
+                deepLinkAttrs.Append($" data-android-intent=\"{Html(androidIntent)}\"");
+
             destinationButtons.Append(
-                $"""<a class="cta" data-destination="{Html(link.Platform.ToLowerInvariant())}" data-url="{Html(link.Url)}" href="{Html(link.Url)}">{Html(release.CtaText)}</a>""");
+                $"""<a class="cta" data-destination="{Html(link.Platform.ToLowerInvariant())}" data-url="{Html(link.Url)}"{deepLinkAttrs} href="{Html(link.Url)}">{Html(release.CtaText)}</a>""");
         }
 
         return $$"""
@@ -80,11 +89,16 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName) :
             <html lang="en">
             <head>
               <meta charset="UTF-8" />
-              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+              <meta name="robots" content="noindex" />
+              <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3Crect width='1' height='1' fill='%231DB954'/%3E%3C/svg%3E" />
               <title>{{Html(release.ArtistName)}} - {{Html(release.Title)}}</title>
+              <meta name="description" content="{{Html(release.Description)}}" />
+              <meta property="og:type" content="website" />
               <meta property="og:title" content="{{Html(release.ArtistName)}} - {{Html(release.Title)}}" />
               <meta property="og:description" content="{{Html(release.Description)}}" />
               <meta property="og:image" content="{{Html(release.CoverImageUrl)}}" />
+              <link rel="preload" href="{{Html(release.CoverImageUrl)}}" as="image" fetchpriority="high" />
               <style>
                 body { margin: 0; font-family: system-ui, sans-serif; color: #fff; background: #000; overflow-x: hidden; }
                 .backdrop {
@@ -118,14 +132,36 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName) :
                 (function () {
                   var slug = {{JsString(release.Slug)}};
                   var viewedAt = Date.now();
+                  var lastClick = 0;
+                  var ua = navigator.userAgent || '';
+                  var isAndroid = /Android/i.test(ua);
+                  var isIOS = /iPhone|iPad|iPod/i.test(ua);
                   fetch('/pv/' + slug, { method: 'GET', keepalive: true }).catch(function () {});
 
                   document.querySelectorAll('.cta').forEach(function (btn) {
                     btn.addEventListener('click', function (e) {
                       e.preventDefault();
-                      var dwell = Date.now() - viewedAt;
+                      var now = Date.now();
+                      if (now - lastClick < 500) return;
+                      lastClick = now;
+
+                      var dwell = now - viewedAt;
                       var destination = btn.getAttribute('data-destination');
-                      window.location.href = '/out/' + slug + '/' + destination + '?dwell=' + dwell;
+                      var webUrl = btn.getAttribute('data-url');
+                      var appUri = btn.getAttribute('data-app-uri');
+                      var androidIntent = btn.getAttribute('data-android-intent');
+
+                      fetch('/out/' + slug + '/' + destination + '?dwell=' + dwell, { method: 'GET', keepalive: true }).catch(function () {});
+
+                      if (isAndroid && androidIntent) {
+                        location.href = androidIntent;
+                        setTimeout(function () { location.href = webUrl; }, 1500);
+                      } else if (isIOS && appUri) {
+                        location.href = appUri;
+                        setTimeout(function () { location.href = webUrl; }, 1500);
+                      } else {
+                        location.href = webUrl;
+                      }
                     });
                   });
                 })();
@@ -133,6 +169,34 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName) :
             </body>
             </html>
             """;
+    }
+
+    /// <summary>
+    /// Derives a native-app URI scheme and an Android intent URL from a Spotify web URL
+    /// (e.g. https://open.spotify.com/track/{id} -> spotify:track:{id}:play), so the landing page
+    /// can attempt to open the Spotify app directly before falling back to the web URL. The
+    /// trailing ":play" is a Spotify URI convention that triggers autoplay of the linked item
+    /// once the app opens, instead of just navigating to it. Only Spotify is a supported
+    /// destination in the MVP (see docs/CONTRACT.md); any other platform, or a URL that doesn't
+    /// match the expected shape, gets no deep link and just uses the web URL.
+    /// </summary>
+    private static (string? AppUri, string? AndroidIntent) BuildDeepLinks(DestinationLink link)
+    {
+        if (!string.Equals(link.Platform, "spotify", StringComparison.OrdinalIgnoreCase))
+            return (null, null);
+
+        if (!Uri.TryCreate(link.Url, UriKind.Absolute, out var uri))
+            return (null, null);
+
+        var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length < 2)
+            return (null, null);
+
+        var type = segments[0];
+        var id = segments[1];
+        return (
+            $"spotify:{type}:{id}:play",
+            $"intent://open.spotify.com/{type}/{id}:play#Intent;scheme=https;package=com.spotify.music;end");
     }
 
     private static string Html(string value) => WebUtility.HtmlEncode(value);

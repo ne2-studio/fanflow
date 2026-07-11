@@ -41,13 +41,13 @@ public class TrafficTracker(
         return Result.Success();
     }
 
-    public async Task<Result<DestinationRedirectDto>> TrackDestinationClickAsync(TrackDestinationClickRequest request)
+    public async Task<Result> TrackDestinationClickAsync(TrackDestinationClickRequest request)
     {
         var release = await releaseRepository.LoadBySlugAsync(request.ReleaseSlug);
         if (release == null || release.Status == ReleaseStatus.Deleted)
         {
             logger.LogWarning("TrackDestinationClickAsync - Release {Slug} does not exist", request.ReleaseSlug);
-            return Result.Failure<DestinationRedirectDto>("release_not_found");
+            return Result.Failure("release_not_found");
         }
 
         var destination = release.Links.FirstOrDefault(l =>
@@ -56,7 +56,7 @@ public class TrafficTracker(
         if (destination == null)
         {
             logger.LogWarning("TrackDestinationClickAsync - Destination {DestinationId} not found on release {ReleaseId}", request.DestinationId, release.Id);
-            return Result.Failure<DestinationRedirectDto>("destination_not_found");
+            return Result.Failure("destination_not_found");
         }
 
         var trackedEvent = new TrackedEvent(
@@ -76,7 +76,7 @@ public class TrafficTracker(
         await eventRepository.SaveAsync(trackedEvent);
 
         logger.LogInformation("TrackDestinationClickAsync - Recorded DestinationClick {Id} for release {ReleaseId}", trackedEvent.Id, release.Id);
-        return Result.Success(new DestinationRedirectDto(destination.Url));
+        return Result.Success();
     }
 
     public async Task<Result> RecordHoneypotHitAsync(RecordHoneypotHitRequest request)
