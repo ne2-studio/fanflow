@@ -5,8 +5,34 @@
 #   cd frontend && cp .env.example .env && npm install && npm run build
 # VITE_API_URL is baked into the build at build time, so make sure frontend/.env points at
 # http://localhost:5050 (the backend port mapped below) before building.
+#
+# Local-only auth: `fake-oidc` replaces the real OIDC provider so you can log in without external
+# credentials. It always logs you in as the "admin" user (no login screen). This is dev-only —
+# staging/production keep using the real provider, configured via appsettings.Production.json and
+# deploy-time CI vars, untouched by this file.
+#
+# One-time setup: the browser and the backend container both need to resolve the hostname
+# "fake-oidc" (its issuer URL is baked into the tokens it issues, so it must be the same host from
+# everywhere). Add this line to your hosts file (WSL2/Linux/macOS: /etc/hosts; Windows browser
+# hitting a WSL2 Docker daemon: C:\Windows\System32\drivers\etc\hosts):
+#   127.0.0.1 fake-oidc
 
 services:
+  fake-oidc:
+    image: ghcr.io/ne2-studio/fake-oidc:latest
+    ports:
+      - "5000:5000"
+    environment:
+      OIDC_ISSUER: "http://fake-oidc:5000"
+      OIDC_GENERATE_KEY: "true"
+      OIDC_DEFAULT_USER: "admin"
+      OIDC_TOKEN_LIFETIME_SECONDS: "3600"
+      OIDC_CLIENTS: >-
+        [{"clientId":"frontend","redirectUris":["http://localhost:3000/callback"]}]
+      OIDC_USERS: >-
+        [{"key":"admin","sub":"admin-user","email":"admin@test.local","name":"Admin User","roles":["admin"]},
+        {"key":"user","sub":"normal-user","email":"user@test.local","name":"Normal User","roles":["user"]}]
+
   postgres:
     image: postgres:16
     environment:
@@ -35,6 +61,8 @@ services:
       Publishing__Minio__AccessKey: "minioadmin"
       Publishing__Minio__SecretKey: "minioadmin"
       Publishing__Minio__Bucket: "releases"
+      Auth__Authority: "http://fake-oidc:5000"
+      Auth__Audience: "frontend"
     ports:
       - "5050:8080"
     depends_on:
@@ -42,6 +70,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      fake-oidc:
+        condition: service_started
 
   frontend:
     build:

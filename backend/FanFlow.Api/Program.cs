@@ -55,6 +55,8 @@ builder.Services.AddAuthentication(options =>
 {
     options.Authority = builder.Configuration["Auth:Authority"];
     options.Audience = builder.Configuration["Auth:Audience"];
+    // Local dev points Authority at the http:// fake-oidc container; real environments keep https.
+    options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
 });
 
 builder.Services.AddAuthorization();

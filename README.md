@@ -69,18 +69,22 @@ See [`frontend/README.md`](frontend/README.md) for details.
 
 ### Everything via Docker Compose
 
-`docker-compose.yaml` at the repo root spins up Postgres, MinIO, the backend, the frontend, and the
-static site container together, each built from its own `Dockerfile`. The frontend image only
-copies a pre-built `dist/` (it doesn't run `npm run build` itself), so build the frontend once
-first:
+`docker-compose.yaml` at the repo root spins up Postgres, MinIO, the backend, the frontend, the
+static site container, and a `fake-oidc` auth provider together, each built from its own
+`Dockerfile` (fake-oidc is pulled prebuilt). The frontend image only copies a pre-built `dist/`
+(it doesn't run `npm run build` itself), so build the frontend once first:
 
 ```bash
 cd frontend && cp .env.example .env && npm install && npm run build && cd ..
 docker compose up --build
 ```
 
+`fake-oidc` replaces the real OIDC provider for local dev only — no external credentials needed,
+you're logged in automatically as an "admin" user. Add `127.0.0.1 fake-oidc` to your hosts file
+first (see the comment at the top of `docker-compose.yaml` for why).
+
 Backend: http://localhost:5050 · Frontend: http://localhost:3000 · Site: http://localhost:8081 ·
-Postgres: localhost:5432 · MinIO console: http://localhost:9001.
+Postgres: localhost:5432 · MinIO console: http://localhost:9001 · fake-oidc: http://localhost:5000.
 
 ## Deployment
 
