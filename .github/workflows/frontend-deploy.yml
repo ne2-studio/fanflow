@@ -26,28 +26,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build Vite app
-        run: npm run build
-        env:
-          VITE_API_URL: ${{ vars.VITE_API_URL }}
-          VITE_OIDC_AUTHORITY: ${{ vars.VITE_OIDC_AUTHORITY }}
-          VITE_OIDC_CLIENT_ID: ${{ vars.VITE_OIDC_CLIENT_ID }}
-
       - name: Login to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build image
-        run: docker build -t $IMAGE_NAME:latest .
+        run: |
+          docker build \
+            --build-arg VITE_API_URL="${{ vars.VITE_API_URL }}" \
+            --build-arg VITE_OIDC_AUTHORITY="${{ vars.VITE_OIDC_AUTHORITY }}" \
+            --build-arg VITE_OIDC_CLIENT_ID="${{ vars.VITE_OIDC_CLIENT_ID }}" \
+            -t $IMAGE_NAME:latest .
 
       - name: Push image
         run: docker push $IMAGE_NAME:latest
