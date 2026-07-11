@@ -2,18 +2,20 @@ using System.Net;
 using System.Text.Json;
 using FanFlow.Infra;
 using FanFlow.Ports.Output;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace FanFlow.Infra.Tests;
 
 public class MetaConversionsApiClientTests
 {
     private const string PixelId = "123456789012345";
+    private static readonly NullLogger<MetaConversionsApiClient> Logger = NullLogger<MetaConversionsApiClient>.Instance;
 
     [Fact]
     public async Task SendConversionEventAsync_ShouldIncludeFbpAndFbc_InUserData_WhenPresent()
     {
         var handler = new CapturingHttpMessageHandler();
-        var client = new MetaConversionsApiClient(new HttpClient(handler), "token");
+        var client = new MetaConversionsApiClient(new HttpClient(handler), "token", Logger);
 
         var conversionEvent = new ConversionEvent(
             EventType.PageView, Guid.NewGuid(), PixelId, "1.2.3.4", "Mozilla/5.0", DateTime.UtcNow, "artist-title",
@@ -30,7 +32,7 @@ public class MetaConversionsApiClientTests
     public async Task SendConversionEventAsync_ShouldOmitFbpAndFbc_FromUserData_WhenNull()
     {
         var handler = new CapturingHttpMessageHandler();
-        var client = new MetaConversionsApiClient(new HttpClient(handler), "token");
+        var client = new MetaConversionsApiClient(new HttpClient(handler), "token", Logger);
 
         var conversionEvent = new ConversionEvent(
             EventType.PageView, Guid.NewGuid(), PixelId, "1.2.3.4", "Mozilla/5.0", DateTime.UtcNow, "artist-title");
@@ -46,7 +48,7 @@ public class MetaConversionsApiClientTests
     public async Task SendConversionEventAsync_ShouldOmitFbpAndFbc_FromUserData_WhenEmpty()
     {
         var handler = new CapturingHttpMessageHandler();
-        var client = new MetaConversionsApiClient(new HttpClient(handler), "token");
+        var client = new MetaConversionsApiClient(new HttpClient(handler), "token", Logger);
 
         var conversionEvent = new ConversionEvent(
             EventType.PageView, Guid.NewGuid(), PixelId, "1.2.3.4", "Mozilla/5.0", DateTime.UtcNow, "artist-title", "", "  ");
@@ -62,7 +64,7 @@ public class MetaConversionsApiClientTests
     public async Task SendConversionEventAsync_ShouldStillIncludeIpAndUserAgent_RegardlessOfFbpFbc()
     {
         var handler = new CapturingHttpMessageHandler();
-        var client = new MetaConversionsApiClient(new HttpClient(handler), "token");
+        var client = new MetaConversionsApiClient(new HttpClient(handler), "token", Logger);
 
         var conversionEvent = new ConversionEvent(
             EventType.DestinationClick, Guid.NewGuid(), PixelId, "9.8.7.6", "curl/8.0", DateTime.UtcNow, "artist-title");
@@ -78,7 +80,7 @@ public class MetaConversionsApiClientTests
     public async Task SendConversionEventAsync_ShouldOmitTestEventCode_WhenNotConfigured()
     {
         var handler = new CapturingHttpMessageHandler();
-        var client = new MetaConversionsApiClient(new HttpClient(handler), "token");
+        var client = new MetaConversionsApiClient(new HttpClient(handler), "token", Logger);
 
         var conversionEvent = new ConversionEvent(
             EventType.DestinationClick, Guid.NewGuid(), PixelId, "1.2.3.4", "Mozilla/5.0", DateTime.UtcNow, "artist-title");
@@ -93,7 +95,7 @@ public class MetaConversionsApiClientTests
     public async Task SendConversionEventAsync_ShouldIncludeTestEventCode_WhenConfigured()
     {
         var handler = new CapturingHttpMessageHandler();
-        var client = new MetaConversionsApiClient(new HttpClient(handler), "token", "TEST12345");
+        var client = new MetaConversionsApiClient(new HttpClient(handler), "token", Logger, "TEST12345");
 
         var conversionEvent = new ConversionEvent(
             EventType.DestinationClick, Guid.NewGuid(), PixelId, "1.2.3.4", "Mozilla/5.0", DateTime.UtcNow, "artist-title");

@@ -1,6 +1,7 @@
 using Amazon.S3;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using FanFlow.Ports.Output;
 
 namespace FanFlow.Infra;
@@ -61,6 +62,7 @@ public static class ServiceRegistration
                 return new MetaConversionsApiClient(
                     httpClient,
                     configuration["Meta:AccessToken"] ?? "",
+                    sp.GetRequiredService<ILogger<MetaConversionsApiClient>>(),
                     testEventCode);
             });
         }

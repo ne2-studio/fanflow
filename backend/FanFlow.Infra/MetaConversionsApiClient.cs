@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using CSharpFunctionalExtensions;
 using FanFlow.Ports.Output;
+using Microsoft.Extensions.Logging;
 
 namespace FanFlow.Infra;
 
@@ -8,7 +9,11 @@ namespace FanFlow.Infra;
 /// Sends server-side conversion events to the Meta Conversions API
 /// (https://developers.facebook.com/docs/marketing-api/conversions-api).
 /// </summary>
-public class MetaConversionsApiClient(HttpClient httpClient, string accessToken, string? testEventCode = null) : IConversionsApiClient
+public class MetaConversionsApiClient(
+    HttpClient httpClient,
+    string accessToken,
+    ILogger<MetaConversionsApiClient> logger,
+    string? testEventCode = null) : IConversionsApiClient
 {
     public async Task<Result> SendConversionEventAsync(ConversionEvent conversionEvent)
     {
@@ -33,6 +38,14 @@ public class MetaConversionsApiClient(HttpClient httpClient, string accessToken,
 
         var response = await httpClient.PostAsJsonAsync(
             $"https://graph.facebook.com/v25.0/{conversionEvent.PixelId}/events?access_token={accessToken}", payload);
+
+        // Logged without the request URL/token: a 200 only means Meta accepted the HTTP call,
+        // the body (events_received, messages) is what confirms the event was actually processed.
+        var responseBody = await response.Content.ReadAsStringAsync();
+        logger.LogInformation(
+            "Meta CAPI response: StatusCode={StatusCode}, Body={ResponseBody}",
+            (int)response.StatusCode,
+            responseBody);
 
         return response.IsSuccessStatusCode
             ? Result.Success()
