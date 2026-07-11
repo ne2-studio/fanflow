@@ -27,11 +27,11 @@ npm run dev      # http://localhost:3000
 npm run lint      # tsc --noEmit — this repo's only lint/typecheck step, treat as required
 npm run build
 ```
-Copy `.env.example` to `.env` and set `VITE_API_URL` first. OIDC authority/client_id are hardcoded in `src/main.tsx`, not env-driven.
+Copy `.env.example` to `.env` and set `VITE_API_URL`/`VITE_OIDC_*` first.
 
 ### Everything together
 ```bash
-cd frontend && npm install && npm run build && cd ..   # frontend image only copies pre-built dist/
 docker compose up --build
 ```
+Frontend Dockerfile builds the Vite app itself (multi-stage: node build -> nginx runtime); `VITE_API_URL`/`VITE_OIDC_*` are passed as build args in `docker-compose.yaml`, defaulted to match the local backend/fake-oidc setup.
 Backend :5050 · Frontend :3000 · Site :8081 · Postgres :5432 · MinIO console :9001.

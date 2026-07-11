@@ -1,10 +1,9 @@
 # Local development environment: Postgres + both services, each built from its own Dockerfile.
 #
-# The frontend's Dockerfile only copies a pre-built `dist/` into nginx (it doesn't run `npm build`
-# itself — that happens in CI). Before `docker compose up --build`, run:
-#   cd frontend && cp .env.example .env && npm install && npm run build
-# VITE_API_URL is baked into the build at build time, so make sure frontend/.env points at
-# http://localhost:5050 (the backend port mapped below) before building.
+# The frontend's Dockerfile builds the Vite app itself (multi-stage: node build -> nginx runtime).
+# VITE_API_URL/VITE_OIDC_* are baked in at build time via build args (defaulted below to match the
+# backend port and the fake-oidc service mapped in this file); override them with a frontend/.env
+# file (see frontend/.env.example) if you need different values.
 #
 # Local-only auth: `fake-oidc` replaces the real OIDC provider so you can log in without external
 # credentials. It always logs you in as the "admin" user (no login screen). This is dev-only —
@@ -77,6 +76,10 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5050}
+        VITE_OIDC_AUTHORITY: ${VITE_OIDC_AUTHORITY:-http://fake-oidc:5000}
+        VITE_OIDC_CLIENT_ID: ${VITE_OIDC_CLIENT_ID:-frontend}
     ports:
       - "3000:80"
     depends_on:
