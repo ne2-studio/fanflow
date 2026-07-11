@@ -96,7 +96,7 @@ Raw, unaggregated list of every tracked event (PageView, DestinationClick, Honey
 for a release, newest first — for audit/investigation purposes (ListReleaseEvents).
 
 Response `200 OK`: array of
-`{ id, type, ipAddress, userAgent, referrer, destinationId, dwellTimeMs, country, botScore, classification, createdAt }`.
+`{ id, type, ipAddress, userAgent, referrer, destinationId, dwellTimeMs, country, botScore, classification, createdAt, fbp, fbc, metaEventId }`.
 `botScore`/`classification` are `null` until async spam analysis has run (except `HoneypotHit`,
 which is classified `Bot` synchronously at record time).
 
@@ -104,7 +104,7 @@ which is classified `Bot` synchronously at record time).
 
 ## Tracking (`ITrafficTracker`) — public, unauthenticated, rate-limited
 
-### `GET /pv/{slug}?fbp=<_fbp>&fbc=<_fbc>`
+### `GET /pv/{slug}?fbp=<_fbp>&fbc=<_fbc>&eid=<event-id>`
 
 Records a landing-page view (TrackPageView), unclassified. Response `204 No Content`.
 `404 Not Found` if the release doesn't exist.
@@ -113,10 +113,16 @@ Records a landing-page view (TrackPageView), unclassified. Response `204 No Cont
 (deriving `_fbc` from a `?fbclid=` ad-click param when the cookie isn't set yet) and forwards
 them as query params. If omitted, the backend falls back to the `_fbp`/`_fbc` cookies on the
 request itself. Either way, the values are carried through to the Meta Conversions API call for
-this event (see "Meta Conversions API" below) — they only improve event matching/attribution,
-they play no role in bot classification.
+this event once classified Human — they only improve event matching/attribution, they play no
+role in bot classification.
 
-### `GET /out/{slug}/{destinationId}?dwell=<ms>&fbp=<_fbp>&fbc=<_fbc>`
+`eid` is a client-generated id (one per page load, via `crypto.randomUUID()` with a fallback for
+older browsers) shared between the browser's fbevents.js `PageView` call (as `eventID`) and this
+beacon. It's persisted as `MetaEventId` and sent as `event_id` on the server-side Meta CAPI
+`PageView` call, so Meta dedupes the browser Pixel event against the server-side one instead of
+counting both as separate conversions.
+
+### `GET /out/{slug}/{destinationId}?dwell=<ms>&fbp=<_fbp>&fbc=<_fbc>&eid=<event-id>`
 
 Records a destination click (TrackDestinationClick). Response `204 No Content` — it does not
 redirect; the landing page performs the redirect itself, client-side (native app deep-link
@@ -125,7 +131,10 @@ Recording happens regardless of spam classification, which runs asynchronously a
 `destinationId` is the link's platform (e.g. `spotify`). `dwell` is the time in ms since the
 page view, measured client-side. `fbp`/`fbc` are optional, same semantics as `/pv` above — read
 fresh at click time rather than reused from the page view, to give the Pixel more time to have
-set `_fbp`. `404 Not Found` if the release or destination doesn't exist.
+set `_fbp`. `eid` is a separate client-generated id for this click (`SpotifyClick` has no browser
+Pixel event, so there's nothing to dedupe against — it's still forwarded as `event_id` on the
+Meta CAPI call for traceability/idempotency on Meta's side). `404 Not Found` if the release or
+destination doesn't exist.
 
 ### `GET /trap/{slug}`
 

@@ -35,7 +35,8 @@ public class TrafficTracker(
             Classification: null,
             clock.UtcNow(),
             request.Fbp,
-            request.Fbc);
+            request.Fbc,
+            request.MetaEventId);
 
         await eventRepository.SaveAsync(trackedEvent);
 
@@ -75,7 +76,8 @@ public class TrafficTracker(
             Classification: null,
             clock.UtcNow(),
             request.Fbp,
-            request.Fbc);
+            request.Fbc,
+            request.MetaEventId);
 
         await eventRepository.SaveAsync(trackedEvent);
 

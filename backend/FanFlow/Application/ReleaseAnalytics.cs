@@ -74,5 +74,6 @@ public class ReleaseAnalytics(
         e.Classification?.ToString(),
         e.CreatedAt,
         e.Fbp,
-        e.Fbc);
+        e.Fbc,
+        e.MetaEventId);
 }

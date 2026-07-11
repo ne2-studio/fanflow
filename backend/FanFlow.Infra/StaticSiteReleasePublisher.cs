@@ -153,7 +153,6 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName, I
                 #bg { z-index: -1; opacity: .85; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: url('{{Html(release.CoverImageUrl)}}') 50% no-repeat; background-size: cover; overflow: hidden; }
                 #bg::before { content: ""; position: absolute; inset: 0; background: inherit; background-size: cover; transform: scale(1.6); }
                 #bg::after { content: ""; position: absolute; inset: 0; -webkit-backdrop-filter: blur(60px) saturate(1.4); backdrop-filter: blur(60px) saturate(1.4); background: linear-gradient(180deg, rgba(13,13,13,.35) 0%, rgba(13,13,13,.85) 100%); }
-                #i { opacity: 0; position: absolute; }
                 #top { padding: 8px 4px 18px; margin-bottom: 8px; }
                 #a { display: inline-block; position: relative; width: 320px; height: 320px; border-radius: 14px; background: url('{{Html(release.CoverImageUrl)}}') 50% no-repeat; background-size: cover; box-shadow: 0 10px 30px rgba(0,0,0,.45); margin: 0 auto; cursor: pointer; }
                 .play-overlay { position: absolute; top: 50%; left: 50%; width: 30%; height: 30%; transform: translate(-50%, -50%); filter: drop-shadow(0 4px 14px rgba(0,0,0,.35)); pointer-events: none; }
@@ -187,15 +186,40 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName, I
                   {{destinationButtons}}
                 </div>
               </main>
-              <img id="i" height="1" width="1" alt="" src="https://www.facebook.com/tr?id={{Html(release.FacebookPixelId)}}&amp;ev=PageView&amp;cd[content_name]={{Html(contentName)}}" />
               <script>
+                !function(f,b,e,v,n,t,s) {
+                  if(f.fbq)return;
+                  n=f.fbq=function(){n.callMethod?
+                    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+                  if(!f._fbq)f._fbq=n;
+                  n.push=n;
+                  n.loaded=!0;
+                  n.version='2.0';
+                  n.queue=[];
+                  t=b.createElement(e);
+                  t.async=!0;
+                  t.src=v;
+                  s=b.getElementsByTagName(e)[0];
+                  s.parentNode.insertBefore(t,s);
+                }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+
+                fbq('init', {{JsString(release.FacebookPixelId)}});
+
                 (function () {
                   var slug = {{JsString(release.Slug)}};
+                  var contentName = {{JsString(contentName)}};
                   var viewedAt = Date.now();
                   var lastClick = 0;
                   var ua = navigator.userAgent || '';
                   var isAndroid = /Android/i.test(ua);
                   var isIOS = /iPhone|iPad|iPod/i.test(ua);
+
+                  function newEventId(prefix) {
+                    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                      return prefix + '_' + window.crypto.randomUUID();
+                    }
+                    return prefix + '_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+                  }
 
                   // _fbp is set by the Meta Pixel; _fbc is set by Meta when present, or derived here
                   // from a ?fbclid= ad-click param using Meta's own "fb.1.<ms>.<fbclid>" convention.
@@ -219,8 +243,14 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName, I
                     return params;
                   }
 
+                  // Shared with the server-side CAPI PageView call as event_id so Meta dedupes the
+                  // browser Pixel event against the server-side one instead of counting both.
+                  var pageViewEventId = newEventId('pv');
+                  fbq('track', 'PageView', { content_name: contentName }, { eventID: pageViewEventId });
+
                   var pvParams = fbTrackingParams();
-                  fetch('/pv/' + slug + (pvParams.length ? '?' + pvParams.join('&') : ''), { method: 'GET', keepalive: true }).catch(function () {});
+                  pvParams.push('eid=' + encodeURIComponent(pageViewEventId));
+                  fetch('/pv/' + slug + '?' + pvParams.join('&'), { method: 'GET', keepalive: true }).catch(function () {});
 
                   document.querySelectorAll('.cta').forEach(function (btn) {
                     btn.addEventListener('click', function (e) {
@@ -235,7 +265,11 @@ public class StaticSiteReleasePublisher(IAmazonS3 s3Client, string bucketName, I
                       var appUri = btn.getAttribute('data-app-uri');
                       var androidIntent = btn.getAttribute('data-android-intent');
 
+                      // SpotifyClick has no browser Pixel event, so there's nothing to dedupe here —
+                      // the id is still generated and sent for traceability/idempotency on Meta's side.
+                      var clickEventId = newEventId('click');
                       var clickParams = fbTrackingParams();
+                      clickParams.push('eid=' + encodeURIComponent(clickEventId));
                       var outUrl = '/out/' + slug + '/' + destination + '?dwell=' + dwell +
                         clickParams.map(function (p) { return '&' + p; }).join('');
                       fetch(outUrl, { method: 'GET', keepalive: true }).catch(function () {});

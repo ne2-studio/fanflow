@@ -43,8 +43,10 @@ public class StaticSiteReleasePublisherTests
                 r.ContentType == "text/html" &&
                 r.ContentBody.Contains("Run To Me") &&
                 r.ContentBody.Contains("The Artist") &&
-                r.ContentBody.Contains($"https://www.facebook.com/tr?id={PixelId}") &&
-                r.ContentBody.Contains("cd[content_name]=the-artist-run-to-me") &&
+                r.ContentBody.Contains("https://connect.facebook.net/en_US/fbevents.js") &&
+                r.ContentBody.Contains($"fbq('init', \"{PixelId}\")") &&
+                r.ContentBody.Contains("var contentName = \"the-artist-run-to-me\"") &&
+                r.ContentBody.Contains("fbq('track', 'PageView', { content_name: contentName }, { eventID: pageViewEventId })") &&
                 r.ContentBody.Contains("id=\"bg\"") &&
                 r.ContentBody.Contains("url('https://img/cover.jpg')") &&
                 !r.ContentBody.Contains("bg.jpg")),
@@ -167,7 +169,38 @@ public class StaticSiteReleasePublisherTests
             Arg.Is<PutObjectRequest>(r =>
                 r.ContentBody.Contains("fbCookie('_fbp')") &&
                 r.ContentBody.Contains("fbCookie('_fbc')") &&
-                r.ContentBody.Contains("fetch('/pv/' + slug + (pvParams.length ? '?' + pvParams.join('&') : '')")),
+                r.ContentBody.Contains("fetch('/pv/' + slug + '?' + pvParams.join('&')")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task PublishAsync_ShouldShareOneEventIdBetweenThePixelPageViewAndTheCapiPageViewBeacon()
+    {
+        var s3Client = Substitute.For<IAmazonS3>();
+        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName, new SlugGenerator());
+
+        await publisher.PublishAsync(SampleRelease());
+
+        await s3Client.Received(1).PutObjectAsync(
+            Arg.Is<PutObjectRequest>(r =>
+                r.ContentBody.Contains("var pageViewEventId = newEventId('pv');") &&
+                r.ContentBody.Contains("{ eventID: pageViewEventId }") &&
+                r.ContentBody.Contains("pvParams.push('eid=' + encodeURIComponent(pageViewEventId));")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task PublishAsync_ShouldGenerateASeparateEventId_ForTheDestinationClickBeacon()
+    {
+        var s3Client = Substitute.For<IAmazonS3>();
+        var publisher = new StaticSiteReleasePublisher(s3Client, BucketName, new SlugGenerator());
+
+        await publisher.PublishAsync(SampleRelease());
+
+        await s3Client.Received(1).PutObjectAsync(
+            Arg.Is<PutObjectRequest>(r =>
+                r.ContentBody.Contains("var clickEventId = newEventId('click');") &&
+                r.ContentBody.Contains("clickParams.push('eid=' + encodeURIComponent(clickEventId));")),
             Arg.Any<CancellationToken>());
     }
 

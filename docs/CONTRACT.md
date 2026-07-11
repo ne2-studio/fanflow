@@ -40,10 +40,10 @@ behavior — not a technical design.
 
 ## 6) TrackPageView
 
-- **Input**: release slug (from `/pv/*` request), IP address, user agent, referrer, timestamp
+- **Input**: release slug (from `/pv/*` request), IP address, user agent, referrer, timestamp, a client-generated Meta event id (`eid`) shared with the browser's fbevents.js `PageView` call
 - **Output (OK)**: view recorded, unclassified; no content returned to the visitor
 - **Errors**: `release_not_found` (idempotent); TODO: confirm with business — duplicate-view suppression window
-- **Rules**: purely records the event with the data needed for later spam analysis; no bot scoring happens synchronously — classification is done by AnalyzePageView
+- **Rules**: purely records the event with the data needed for later spam analysis; no bot scoring happens synchronously — classification is done by AnalyzePageView; the Meta event id is stored as-is for later use by ForwardConversionToMeta, not validated or generated server-side
 
 ## 7) AnalyzePageView (async)
 
@@ -54,7 +54,7 @@ behavior — not a technical design.
 
 ## 8) TrackDestinationClick
 
-- **Input**: release slug, destination identifier (from `/out/*` request), IP address, user agent, referrer, timestamp, elapsed time since the page view (dwell time)
+- **Input**: release slug, destination identifier (from `/out/*` request), IP address, user agent, referrer, timestamp, elapsed time since the page view (dwell time), a client-generated Meta event id (`eid`), distinct from the page view's
 - **Output (OK)**: click recorded; no content returned — the redirect to the destination is performed client-side by the landing page itself (native app deep-link attempt with a web fallback), not by this endpoint
 - **Errors**: `release_not_found` (idempotent); `destination_not_found` (idempotent)
 - **Rules**: event is recorded regardless of classification, since classification runs asynchronously afterward — no bot scoring is done synchronously; because the redirect is client-side and fired independently of this call (so a successful native-app open isn't blocked waiting on it), a click that opens the destination app is not guaranteed to be recorded server-side if the request is lost (e.g. tab backgrounded before the request completes) — a known, accepted limitation of client-side deep-linking
@@ -76,9 +76,9 @@ behavior — not a technical design.
 ## 11) ForwardConversionToMeta
 
 - **Input**: a PageView or SpotifyClick event classified Human by AnalyzePageView / AnalyzeDestinationClick
-- **Output (OK)**: event forwarded to Meta Conversions API, server-side
-- **Errors**: `meta_api_error` (TODO: confirm with business — retry policy and idempotency/dedupe-by-event-id semantics)
-- **Rules**: only Human-classified events are forwarded; forwarding never happens before async classification completes; the Meta Pixel ID used is always the one configured on the event's release (every release has one — see CreateRelease), not a global/app-wide value
+- **Output (OK)**: event forwarded to Meta Conversions API, server-side, carrying the event's Meta event id as `event_id` when present
+- **Errors**: `meta_api_error` (TODO: confirm with business — retry policy)
+- **Rules**: only Human-classified events are forwarded; forwarding never happens before async classification completes; the Meta Pixel ID used is always the one configured on the event's release (every release has one — see CreateRelease), not a global/app-wide value; for `PageView`, the forwarded `event_id` matches the `eventID` the browser's fbevents.js Pixel used for its own `PageView` call, so Meta deduplicates the Pixel and CAPI events into one; `SpotifyClick` has no browser Pixel event, so its `event_id` is forwarded purely for traceability/idempotency, not deduplication
 
 ## 12) GetReleaseAnalytics
 

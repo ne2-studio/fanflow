@@ -17,20 +17,21 @@ public class MetaConversionsApiClient(
 {
     public async Task<Result> SendConversionEventAsync(ConversionEvent conversionEvent)
     {
-        var eventData = new[]
+        var eventEntry = new Dictionary<string, object?>
         {
-            new
-            {
-                event_name = ToMetaEventName(conversionEvent.Type),
-                event_time = new DateTimeOffset(conversionEvent.OccurredAt).ToUnixTimeSeconds(),
-                action_source = "website",
-                user_data = UserData(conversionEvent),
-                custom_data = new
-                {
-                    content_name = conversionEvent.ContentName
-                }
-            }
+            ["event_name"] = ToMetaEventName(conversionEvent.Type),
+            ["event_time"] = new DateTimeOffset(conversionEvent.OccurredAt).ToUnixTimeSeconds(),
+            ["action_source"] = "website",
+            ["user_data"] = UserData(conversionEvent),
+            ["custom_data"] = new { content_name = conversionEvent.ContentName }
         };
+
+        // Omitted (rather than sent null) when absent, same convention as fbp/fbc in UserData —
+        // this is the id Meta uses to dedupe this event against the matching browser Pixel event.
+        if (!string.IsNullOrWhiteSpace(conversionEvent.MetaEventId))
+            eventEntry["event_id"] = conversionEvent.MetaEventId;
+
+        var eventData = new[] { eventEntry };
 
         object payload = string.IsNullOrWhiteSpace(testEventCode)
             ? new { data = eventData }

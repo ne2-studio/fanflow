@@ -52,7 +52,7 @@ public class SpamClassifierTests
     }
 
     [Fact]
-    public async Task AnalyzePageViewAsync_ShouldClassifyHuman_ButNotForwardToCapi_WhenSignalsAreClean()
+    public async Task AnalyzePageViewAsync_ShouldClassifyHuman_AndForwardToCapi_WhenSignalsAreClean()
     {
         var pageView = PageView("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15");
         await eventRepository.SaveAsync(pageView);
@@ -62,7 +62,21 @@ public class SpamClassifierTests
         Assert.True(result.IsSuccess);
         var stored = await eventRepository.LoadByIdAsync(pageView.Id);
         Assert.Equal(EventClassification.Human, stored!.Classification);
-        Assert.Empty(conversionsApiClient.SentEvents);
+        Assert.Single(conversionsApiClient.SentEvents);
+        Assert.Equal(PixelId, conversionsApiClient.SentEvents[0].PixelId);
+    }
+
+    [Fact]
+    public async Task AnalyzePageViewAsync_ShouldForwardMetaEventId_ForPixelDedup_WhenPresentOnTheEvent()
+    {
+        var pageView = PageView("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15")
+            with { MetaEventId = "pv_abc123" };
+        await eventRepository.SaveAsync(pageView);
+
+        await spamClassifier.AnalyzePageViewAsync(pageView.Id.ToString());
+
+        Assert.Single(conversionsApiClient.SentEvents);
+        Assert.Equal("pv_abc123", conversionsApiClient.SentEvents[0].MetaEventId);
     }
 
     [Fact]
@@ -137,6 +151,19 @@ public class SpamClassifierTests
         Assert.Single(conversionsApiClient.SentEvents);
         Assert.Equal("fb.1.111.abc", conversionsApiClient.SentEvents[0].Fbp);
         Assert.Equal("fb.1.222.xyz", conversionsApiClient.SentEvents[0].Fbc);
+    }
+
+    [Fact]
+    public async Task AnalyzeDestinationClickAsync_ShouldForwardMetaEventId_WhenPresentOnTheEvent()
+    {
+        var click = DestinationClick("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15")
+            with { MetaEventId = "click_abc123" };
+        await eventRepository.SaveAsync(click);
+
+        await spamClassifier.AnalyzeDestinationClickAsync(click.Id.ToString());
+
+        Assert.Single(conversionsApiClient.SentEvents);
+        Assert.Equal("click_abc123", conversionsApiClient.SentEvents[0].MetaEventId);
     }
 
     [Fact]

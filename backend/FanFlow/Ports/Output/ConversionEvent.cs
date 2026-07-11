@@ -13,5 +13,6 @@ public record ConversionEvent
     DateTime OccurredAt,
     string ContentName,
     string? Fbp = null,
-    string? Fbc = null
+    string? Fbc = null,
+    string? MetaEventId = null
 );

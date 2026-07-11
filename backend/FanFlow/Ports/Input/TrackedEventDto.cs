@@ -15,4 +15,5 @@ public record TrackedEventDto(
     string? Classification,
     DateTime CreatedAt,
     string? Fbp,
-    string? Fbc);
+    string? Fbc,
+    string? MetaEventId);

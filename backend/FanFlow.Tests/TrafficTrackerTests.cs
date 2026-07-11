@@ -73,6 +73,17 @@ public class TrafficTrackerTests
     }
 
     [Fact]
+    public async Task TrackPageViewAsync_ShouldPersistMetaEventId_WhenProvided()
+    {
+        var result = await trafficTracker.TrackPageViewAsync(new TrackPageViewRequest(
+            "run-to-me", "1.2.3.4", "Mozilla/5.0", "https://instagram.com", "US", MetaEventId: "pv_abc123"));
+
+        Assert.True(result.IsSuccess);
+        var stored = await eventRepository.LoadByIdAsync(GeneratedId);
+        Assert.Equal("pv_abc123", stored!.MetaEventId);
+    }
+
+    [Fact]
     public async Task TrackDestinationClickAsync_ShouldRecordEvent()
     {
         var result = await trafficTracker.TrackDestinationClickAsync(new TrackDestinationClickRequest(
@@ -95,6 +106,17 @@ public class TrafficTrackerTests
         var stored = await eventRepository.LoadByIdAsync(GeneratedId);
         Assert.Equal("fb.1.111.abc", stored!.Fbp);
         Assert.Equal("fb.1.222.xyz", stored.Fbc);
+    }
+
+    [Fact]
+    public async Task TrackDestinationClickAsync_ShouldPersistMetaEventId_WhenProvided()
+    {
+        var result = await trafficTracker.TrackDestinationClickAsync(new TrackDestinationClickRequest(
+            "run-to-me", "spotify", "1.2.3.4", "Mozilla/5.0", "https://instagram.com", 3200, "US", MetaEventId: "click_abc123"));
+
+        Assert.True(result.IsSuccess);
+        var stored = await eventRepository.LoadByIdAsync(GeneratedId);
+        Assert.Equal("click_abc123", stored!.MetaEventId);
     }
 
     [Fact]

@@ -106,6 +106,37 @@ public class MetaConversionsApiClientTests
         Assert.Equal("TEST12345", json.RootElement.GetProperty("test_event_code").GetString());
     }
 
+    [Fact]
+    public async Task SendConversionEventAsync_ShouldIncludeEventId_WhenPresent()
+    {
+        var handler = new CapturingHttpMessageHandler();
+        var client = new MetaConversionsApiClient(new HttpClient(handler), "token", Logger);
+
+        var conversionEvent = new ConversionEvent(
+            EventType.PageView, Guid.NewGuid(), PixelId, "1.2.3.4", "Mozilla/5.0", DateTime.UtcNow, "artist-title",
+            MetaEventId: "pv_550e8400-e29b-41d4-a716-446655440000");
+
+        await client.SendConversionEventAsync(conversionEvent);
+
+        using var json = JsonDocument.Parse(handler.CapturedBody!);
+        Assert.Equal("pv_550e8400-e29b-41d4-a716-446655440000", json.RootElement.GetProperty("data")[0].GetProperty("event_id").GetString());
+    }
+
+    [Fact]
+    public async Task SendConversionEventAsync_ShouldOmitEventId_WhenNull()
+    {
+        var handler = new CapturingHttpMessageHandler();
+        var client = new MetaConversionsApiClient(new HttpClient(handler), "token", Logger);
+
+        var conversionEvent = new ConversionEvent(
+            EventType.PageView, Guid.NewGuid(), PixelId, "1.2.3.4", "Mozilla/5.0", DateTime.UtcNow, "artist-title");
+
+        await client.SendConversionEventAsync(conversionEvent);
+
+        using var json = JsonDocument.Parse(handler.CapturedBody!);
+        Assert.False(json.RootElement.GetProperty("data")[0].TryGetProperty("event_id", out _));
+    }
+
     private static JsonElement UserDataFrom(string? body)
     {
         Assert.NotNull(body);

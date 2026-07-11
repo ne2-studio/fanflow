@@ -8,5 +8,6 @@ public record TrackPageViewRequest
     string? Referrer,
     string? Country,
     string? Fbp = null,
-    string? Fbc = null
+    string? Fbc = null,
+    string? MetaEventId = null
 );

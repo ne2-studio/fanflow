@@ -19,7 +19,7 @@ public class TrackingController(ITrafficTracker trafficTracker) : ControllerBase
     public async Task<IActionResult> TrackPageView(string slug)
     {
         var result = await trafficTracker.TrackPageViewAsync(new TrackPageViewRequest(
-            slug, ClientIp(), UserAgent(), Referrer(), Country(), Fbp(), Fbc()));
+            slug, ClientIp(), UserAgent(), Referrer(), Country(), Fbp(), Fbc(), MetaEventId()));
 
         return result.IsSuccess ? NoContent() : NotFound();
     }
@@ -28,7 +28,7 @@ public class TrackingController(ITrafficTracker trafficTracker) : ControllerBase
     public async Task<IActionResult> TrackDestinationClick(string slug, string destinationId, [FromQuery] int dwell = 0)
     {
         var result = await trafficTracker.TrackDestinationClickAsync(new TrackDestinationClickRequest(
-            slug, destinationId, ClientIp(), UserAgent(), Referrer(), dwell, Country(), Fbp(), Fbc()));
+            slug, destinationId, ClientIp(), UserAgent(), Referrer(), dwell, Country(), Fbp(), Fbc(), MetaEventId()));
 
         return result.IsSuccess ? NoContent() : NotFound();
     }
@@ -71,6 +71,12 @@ public class TrackingController(ITrafficTracker trafficTracker) : ControllerBase
     private string? Fbp() => Sanitize(Request.Query["fbp"].FirstOrDefault()) ?? Sanitize(Request.Cookies["_fbp"]);
 
     private string? Fbc() => Sanitize(Request.Query["fbc"].FirstOrDefault()) ?? Sanitize(Request.Cookies["_fbc"]);
+
+    /// <summary>
+    /// The landing page's shared Pixel/CAPI dedup id (`?eid=`), generated client-side once per
+    /// PageView/click — see StaticSiteReleasePublisher's inline beacon script.
+    /// </summary>
+    private string? MetaEventId() => Sanitize(Request.Query["eid"].FirstOrDefault());
 
     private static string? Sanitize(string? value)
     {
