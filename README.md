@@ -70,12 +70,11 @@ See [`frontend/README.md`](frontend/README.md) for details.
 ### Everything via Docker Compose
 
 `docker-compose.yaml` at the repo root spins up Postgres, MinIO, the backend, the frontend, the
-static site container, and a `fake-oidc` auth provider together, each built from its own
-`Dockerfile` (fake-oidc is pulled prebuilt). The frontend image only copies a pre-built `dist/`
-(it doesn't run `npm run build` itself), so build the frontend once first:
+static site container, and a `fake-oidc` auth provider together. The backend and site are built
+from their own `Dockerfile` (fake-oidc is pulled prebuilt); the frontend runs the Vite dev server in
+a plain `node:22-alpine` container with `frontend/` mounted:
 
 ```bash
-cd frontend && cp .env.example .env && npm install && npm run build && cd ..
 docker compose up --build
 ```
 
@@ -88,10 +87,15 @@ Postgres: localhost:5432 · MinIO console: http://localhost:9001 · fake-oidc: h
 
 ## Deployment
 
-All services are containerized and deploy independently. CI/CD runs on push to `main`
-(path-filtered per service), builds a Docker image, pushes it to GitHub Container Registry, and
-triggers a Coolify deploy webhook — see `.github/workflows/backend-deploy.yml`,
-`frontend-deploy.yml`, and `site-deploy.yml`.
+All services deploy independently, with CI/CD path-filtered per service:
+
+- **Backend and site**: on push to `main`, build a Docker image, push it to GitHub Container
+  Registry and trigger a Coolify deploy webhook — see `.github/workflows/backend-deploy.yml` and
+  `site-deploy.yml`.
+- **Frontend (admin)**: `.github/workflows/frontend-deploy.yml` builds the Vite app and deploys
+  `dist/` to the Cloudflare Pages project `fanflow-admin`. Push to `main` deploys production
+  (https://fanflow-admin.ne2.studio); each PR gets a preview at
+  `<branch>.fanflow-admin.pages.dev`, linked in a PR comment.
 
 ## License
 

@@ -1,19 +1,26 @@
 name: Frontend CI/CD
 
+# Despliega frontend/ (admin) en Cloudflare Pages (proyecto fanflow-admin):
+# push a main -> producción (fanflow-admin.ne2.studio); PR -> preview en <rama>.fanflow-admin.pages.dev.
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+    paths:
+      - '.github/workflows/frontend-deploy.yml'
+      - 'frontend/**'
+  pull_request:
     paths:
       - '.github/workflows/frontend-deploy.yml'
       - 'frontend/**'
 
 permissions:
   contents: read
-  packages: write
+  deployments: write
+  pull-requests: write
 
-env:
-  IMAGE_NAME: ghcr.io/ne2-studio/fanflow-frontend
+concurrency:
+  group: frontend-deploy-${{ github.ref }}
+  cancel-in-progress: true
 
 defaults:
   run:
@@ -22,25 +29,46 @@ defaults:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    # Los PRs desde forks no tienen acceso a los secrets.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Login to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Build image
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_OIDC_AUTHORITY: ${{ vars.VITE_OIDC_AUTHORITY }}
+          VITE_OIDC_CLIENT_ID: ${{ vars.VITE_OIDC_CLIENT_ID }}
+
+      # Sin 404.html en dist/, Pages sirve index.html en las rutas de la SPA (p. ej. /callback).
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: frontend
+          command: pages deploy dist --project-name=fanflow-admin --branch=${{ github.head_ref || github.ref_name }}
+
+      - name: Comment preview URL
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ steps.deploy.outputs.pages-deployment-alias-url || steps.deploy.outputs.deployment-url }}
         run: |
-          docker build \
-            --build-arg VITE_API_URL="${{ vars.VITE_API_URL }}" \
-            --build-arg VITE_OIDC_AUTHORITY="${{ vars.VITE_OIDC_AUTHORITY }}" \
-            --build-arg VITE_OIDC_CLIENT_ID="${{ vars.VITE_OIDC_CLIENT_ID }}" \
-            -t $IMAGE_NAME:latest .
-
-      - name: Push image
-        run: docker push $IMAGE_NAME:latest
-
-      - name: Trigger Coolify deploy
-        run: |
-          curl -X POST "${{ vars.COOLIFY_WEBHOOK_FRONTEND }}" \
-            -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}"
+          gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body "Preview admin: $URL"

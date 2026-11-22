@@ -1,9 +1,11 @@
-# Local development environment: Postgres + both services, each built from its own Dockerfile.
+# Local development environment: Postgres + all services. backend/ and site/ are built from their
+# own Dockerfiles.
 #
-# The frontend's Dockerfile builds the Vite app itself (multi-stage: node build -> nginx runtime).
-# VITE_API_URL/VITE_OIDC_* are baked in at build time via build args (defaulted below to match the
-# backend port and the fake-oidc service mapped in this file); override them with a frontend/.env
-# file (see frontend/.env.example) if you need different values.
+# The frontend (admin) has no Dockerfile — in production it is a static Vite build on Cloudflare
+# Pages. Here it runs the Vite dev server in a plain node image with frontend/ mounted.
+# VITE_API_URL/VITE_OIDC_* are passed as environment variables (defaulted below to match the
+# backend port and the fake-oidc service mapped in this file); override them from your shell
+# environment if you need different values.
 #
 # Local-only auth: `fake-oidc` replaces the real OIDC provider so you can log in without external
 # credentials. It always logs you in as the "admin" user (no login screen). This is dev-only —
@@ -73,15 +75,18 @@ services:
         condition: service_started
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:5050}
-        VITE_OIDC_AUTHORITY: ${VITE_OIDC_AUTHORITY:-http://fake-oidc:5000}
-        VITE_OIDC_CLIENT_ID: ${VITE_OIDC_CLIENT_ID:-frontend}
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:5050}
+      VITE_OIDC_AUTHORITY: ${VITE_OIDC_AUTHORITY:-http://fake-oidc:5000}
+      VITE_OIDC_CLIENT_ID: ${VITE_OIDC_CLIENT_ID:-frontend}
     ports:
-      - "3000:80"
+      - "3000:3000"
     depends_on:
       - backend
 
