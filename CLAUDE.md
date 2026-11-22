@@ -33,5 +33,8 @@ Copy `.env.example` to `.env` and set `VITE_API_URL`/`VITE_OIDC_*` first.
 ```bash
 docker compose up --build
 ```
-Frontend Dockerfile builds the Vite app itself (multi-stage: node build -> nginx runtime); `VITE_API_URL`/`VITE_OIDC_*` are passed as build args in `docker-compose.yaml`, defaulted to match the local backend/fake-oidc setup.
+The frontend has no Dockerfile: compose runs the Vite dev server in a `node:22-alpine` container with `frontend/` mounted; `VITE_API_URL`/`VITE_OIDC_*` are passed as env vars in `docker-compose.yaml`, defaulted to match the local backend/fake-oidc setup.
+
+## Deployment
+Backend and site: Docker image → GHCR → Coolify webhook. Frontend (admin): static `dist/` on Cloudflare Pages project `fanflow-admin` (fanflow-admin.ne2.studio) via `frontend-deploy.yml`; every same-repo PR gets a preview at `<branch>.fanflow-admin.pages.dev`. No `404.html` in `dist/`, so Pages serves `index.html` for SPA routes.
 Backend :5050 · Frontend :3000 · Site :8081 · Postgres :5432 · MinIO console :9001.
